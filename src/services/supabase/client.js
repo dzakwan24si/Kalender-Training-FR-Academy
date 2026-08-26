@@ -28,7 +28,7 @@ const getCategory = (type, title, location) => {
 };
 
 export const getPelatihanNonReguler = async () => {
-  const { data, error } = await supabase.from('pelatihan_non_reguler').select('*').order('start_date', { ascending: false });
+  const { data, error } = await supabase.from('Program_non_reguler').select('*').order('start_date', { ascending: false });
   return { data: data || [], error };
 };
 
@@ -49,13 +49,13 @@ export const getAllPelatihan = async () => {
 
   // Normalize data for calendar and dashboard
   const normalizedNonReguler = (nonReguler.data || []).map(item => ({
-    id: `non-reg-${item.id}`,
+    id: `non-reg-${item.id_nonreguler}`,
     title: item.jenis_pelatihan,
-    start: new Date(item.start_date),
-    end: new Date(item.end_date),
+    start: item.start_date ? new Date(item.start_date) : null,
+    end: item.end_date ? new Date(item.end_date) : null,
     type: 'Non-Reguler',
     location: item.lokasi_training,
-    region: normalizeRegion(item.lokasi_training),
+    region: item.region || normalizeRegion(item.lokasi_training),
     category: getCategory('Non-Reguler', item.jenis_pelatihan, item.lokasi_training),
     batchCount: Number(item.total_batch) || 1,
     participants: item.target_total || 0,
@@ -66,8 +66,8 @@ export const getAllPelatihan = async () => {
   const normalizedReguler = (reguler.data || []).map(item => ({
     id: `reg-${item.Program_reguler_id}`,
     title: item.Nama_Program_reguler,
-    start: new Date(item.Mulai_program),
-    end: new Date(item.Selesai_program),
+    start: item.Mulai_program ? new Date(item.Mulai_program) : null,
+    end: item.Selesai_program ? new Date(item.Selesai_program) : null,
     type: 'Reguler',
     location: item.Lokasi_training,
     region: normalizeRegion(item.Lokasi_training),
@@ -83,9 +83,19 @@ export const getAllPelatihan = async () => {
 };
 
 export const addPelatihanNonReguler = async (data) => {
-  return supabase.from('pelatihan_non_reguler').insert([data]).select();
+  const dbData = { ...data };
+  if (dbData.tipe_training) {
+    dbData.type_training = dbData.tipe_training;
+    delete dbData.tipe_training;
+  }
+  return supabase.from('Program_non_reguler').insert([dbData]).select();
 };
 
 export const addPelatihanReguler = async (data) => {
-  return supabase.from('Program_reguler').insert([data]).select();
+  const dbData = { ...data };
+  if (dbData.jumlah_bulan_traning !== undefined) {
+    dbData.jumlah_bulan_training = dbData.jumlah_bulan_traning;
+    delete dbData.jumlah_bulan_traning;
+  }
+  return supabase.from('Program_reguler').insert([dbData]).select();
 };

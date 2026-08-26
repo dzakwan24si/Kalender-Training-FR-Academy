@@ -302,8 +302,8 @@ const TrainingCalendar = () => {
                 <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
                   {['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGS', 'SEPT', 'OKT', 'NOV', 'DES'].map((month, idx) => {
                     // Spread batch dates roughly
-                    const isStartMonth = idx === selectedProgram.start.getMonth();
-                    const isEndMonth = idx === selectedProgram.end.getMonth();
+                    const isStartMonth = selectedProgram.start && !isNaN(selectedProgram.start) && idx === selectedProgram.start.getMonth();
+                    const isEndMonth = selectedProgram.end && !isNaN(selectedProgram.end) && idx === selectedProgram.end.getMonth();
                     const isActive = isStartMonth || isEndMonth;
                     
                     return (
