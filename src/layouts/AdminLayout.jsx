@@ -18,14 +18,14 @@ const AdminLayout = () => {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Kalender Pelatihan', href: '/calendar', icon: Calendar },
+    { name: 'Kalender Training', href: '/calendar', icon: Calendar },
     { name: 'Manajemen Data', href: '/data', icon: Database },
   ];
 
   const getPageTitle = () => {
-    switch(location.pathname) {
+    switch (location.pathname) {
       case '/': return 'Dashboard Analitik';
-      case '/calendar': return 'Kalender Pelatihan';
+      case '/calendar': return 'Kalender Training';
       case '/data': return 'Manajemen Data Pelatihan';
       default: return 'FR Academy';
     }
@@ -90,30 +90,6 @@ const AdminLayout = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8">
-          <div className="flex items-center gap-4">
-            <button
-              className="lg:hidden text-slate-500 hover:text-slate-700"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <Menu size={24} />
-            </button>
-            <div className="hidden md:flex flex-col">
-              <h2 className="text-lg font-bold text-slate-800 leading-tight">{getPageTitle()}</h2>
-              <span className="text-xs text-slate-500">Tahun Aktif: {new Date().getFullYear()}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors px-3 py-1.5 rounded-lg border border-slate-200">
-            <div className="hidden sm:block text-right">
-              <p className="text-sm font-bold text-slate-700 leading-tight">Admin L&D</p>
-              <p className="text-[10px] text-slate-500">First Resources</p>
-            </div>
-            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold shadow-sm">
-              <User size={16} />
-            </div>
-          </div>
-        </header>
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-8">
