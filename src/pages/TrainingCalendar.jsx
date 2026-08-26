@@ -30,6 +30,21 @@ const TrainingCalendar = () => {
         setData(result.data);
       } else if (result.error) {
         console.error("Error fetching data in TrainingCalendar:", result.error);
+        // Map data to include category
+        const enhancedData = result.data.map(item => {
+          let category = 'Corporate';
+          if (item.type === 'Reguler') {
+            category = item.title.toLowerCase().includes('mandor') ? 'Reguler - Mandor' : 'Reguler - Staf';
+          } else {
+            const region = (item.originalData?.region || '').toLowerCase();
+            if (region.includes('riau')) category = 'Riau';
+            else if (region.includes('kalbar')) category = 'Kalbar';
+            else if (region.includes('kaltim')) category = 'Kaltim';
+            else category = 'Corporate';
+          }
+          return { ...item, category };
+        });
+        setData(enhancedData);
       }
       setLoading(false);
     };
@@ -38,7 +53,7 @@ const TrainingCalendar = () => {
 
   const filteredData = data.filter(item => {
     const matchCategory = item.category === activeCategory;
-    const matchSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchSearch = (item.title || '').toLowerCase().includes((searchTerm || '').toLowerCase());
     return matchCategory && matchSearch;
   });
 
@@ -310,7 +325,7 @@ const TrainingCalendar = () => {
                       <div key={month} className={`border rounded-xl p-4 text-center flex flex-col items-center justify-center min-h-[90px] shadow-sm transition-all ${isActive ? 'border-green-300 bg-green-50/50 scale-[1.02]' : 'border-slate-100 bg-white'}`}>
                         <span className={`text-xs font-bold tracking-wider mb-2 ${isActive ? 'text-green-800' : 'text-slate-400'}`}>{month}</span>
                         {isActive ? (
-                          <span className="text-sm font-extrabold text-green-700">{Math.ceil(selectedProgram.participants / (isStartMonth !== isEndMonth ? 2 : 1))} org</span>
+                          <span className="text-sm font-extrabold text-green-700">{Math.ceil((selectedProgram.participants || 0) / (startMonth !== endMonth ? 2 : 1))} org</span>
                         ) : (
                           <span className="text-slate-300 font-bold">-</span>
                         )}

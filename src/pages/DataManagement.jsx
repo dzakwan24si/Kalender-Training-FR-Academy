@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, X } from 'lucide-react';
-import { getAllPelatihan, addPelatihanNonReguler, addPelatihanReguler } from '../services/supabase/client';
+import { 
+  getAllPelatihan, addPelatihanNonReguler, addPelatihanReguler,
+  updatePelatihanNonReguler, deletePelatihanNonReguler,
+  updatePelatihanReguler, deletePelatihanReguler 
+} from '../services/supabase/trainingApi';
 
 const DataManagement = () => {
   const [data, setData] = useState([]);
@@ -11,6 +15,8 @@ const DataManagement = () => {
 
   // Form State
   const [formData, setFormData] = useState({});
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editId, setEditId] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -64,13 +70,48 @@ const DataManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (formType === 'reguler') {
-      await addPelatihanReguler(formData);
+      if (isEditMode) await updatePelatihanReguler(editId, formData);
+      else await addPelatihanReguler(formData);
     } else {
-      await addPelatihanNonReguler(formData);
+      if (isEditMode) await updatePelatihanNonReguler(editId, formData);
+      else await addPelatihanNonReguler(formData);
     }
     setIsModalOpen(false);
     setFormData({});
+    setIsEditMode(false);
+    setEditId(null);
     fetchData(); // Refresh data
+  };
+
+  const handleEdit = (item) => {
+    const isReguler = item.type === 'Reguler';
+    setFormType(isReguler ? 'reguler' : 'non_reguler');
+    
+    const editData = { ...item.originalData };
+    if (!isReguler) {
+      if (editData.start_date) editData.start_date = editData.start_date.split('T')[0];
+      if (editData.end_date) editData.end_date = editData.end_date.split('T')[0];
+    } else {
+      if (editData.mulai_program) editData.mulai_program = editData.mulai_program.split('T')[0];
+      if (editData.selesai_program) editData.selesai_program = editData.selesai_program.split('T')[0];
+    }
+
+    setFormData(editData);
+    setIsEditMode(true);
+    setEditId(isReguler ? item.originalData.program_reguler_id : item.originalData.id_nonreguler);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (item) => {
+    const isReguler = item.type === 'Reguler';
+    if (window.confirm(`Yakin ingin menghapus data ${item.title}?`)) {
+      if (isReguler) {
+        await deletePelatihanReguler(item.originalData.program_reguler_id);
+      } else {
+        await deletePelatihanNonReguler(item.originalData.id_nonreguler);
+      }
+      fetchData();
+    }
   };
 
   const filteredData = data.filter(item => 
@@ -86,7 +127,7 @@ const DataManagement = () => {
           <p className="text-slate-500">Kelola data pelatihan reguler dan non-reguler.</p>
         </div>
         <button 
-          onClick={() => { setFormType('non_reguler'); setFormData({}); setIsModalOpen(true); }}
+          onClick={() => { setFormType('non_reguler'); setFormData({}); setIsEditMode(false); setEditId(null); setIsModalOpen(true); }}
           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2"
         >
           <Plus size={18} /> Tambah Data
@@ -156,8 +197,8 @@ const DataManagement = () => {
                     <td className="px-4 py-4 text-slate-600 text-center font-medium">{item.participants}</td>
                     <td className="px-4 py-4 text-right">
                       <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit"><Edit2 size={16} /></button>
-                        <button className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Hapus"><Trash2 size={16} /></button>
+                        <button onClick={() => handleEdit(item)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit"><Edit2 size={16} /></button>
+                        <button onClick={() => handleDelete(item)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Hapus"><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>
@@ -182,9 +223,9 @@ const DataManagement = () => {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl">
-              <h3 className="text-xl font-bold text-slate-800">Tambah Data Pelatihan</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={24} /></button>
+            <div className="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+              <h2 className="text-xl font-bold text-slate-800">{isEditMode ? 'Edit Data Pelatihan' : 'Tambah Data Pelatihan'}</h2>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
             </div>
             
             <div className="flex-1 overflow-y-auto p-6">
@@ -212,11 +253,11 @@ const DataManagement = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Jenis Pelatihan</label>
-                        <input required type="text" name="jenis_pelatihan" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input required type="text" name="jenis_pelatihan" value={formData.jenis_pelatihan || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Tipe Training</label>
-                        <select required name="tipe_training" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
+                        <select required name="type_training" value={formData.type_training || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
                           <option value="">Pilih Tipe</option>
                           <option value="Workshop">Workshop</option>
                           <option value="W & M">W & M</option>
@@ -226,7 +267,7 @@ const DataManagement = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Region</label>
-                        <select required name="region" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
+                        <select required name="region" value={formData.region || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
                           <option value="">Pilih Region</option>
                           <option value="Riau">Riau</option>
                           <option value="Kalbar">Kalbar</option>
@@ -236,7 +277,7 @@ const DataManagement = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Trainer</label>
-                        <select required name="trainer" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
+                        <select required name="trainer" value={formData.trainer || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
                           <option value="">Pilih Trainer</option>
                           <option value="Eksternal">Eksternal</option>
                           <option value="Internal">Internal</option>
@@ -245,19 +286,19 @@ const DataManagement = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Lokasi Training</label>
-                        <input type="text" name="lokasi_training" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input type="text" name="lokasi_training" value={formData.lokasi_training || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Kategori Pelatihan</label>
-                        <input required type="text" name="kategori_pelatihan" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input required type="text" name="kategori_pelatihan" value={formData.kategori_pelatihan || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Mulai</label>
-                        <input required type="date" name="start_date" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input required type="date" name="start_date" value={formData.start_date || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Selesai</label>
-                        <input required type="date" name="end_date" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input required type="date" name="end_date" value={formData.end_date || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                     </div>
                     
@@ -266,27 +307,27 @@ const DataManagement = () => {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div>
                           <label className="block text-xs text-slate-500 mb-1">Non-Staf</label>
-                          <input type="number" name="peserta_non_staf" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                          <input type="number" name="peserta_non_staf" value={formData.peserta_non_staf || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                         </div>
                         <div>
                           <label className="block text-xs text-slate-500 mb-1">AST</label>
-                          <input type="number" name="peserta_ast" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                          <input type="number" name="peserta_ast" value={formData.peserta_ast || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                         </div>
                         <div>
                           <label className="block text-xs text-slate-500 mb-1">Askep</label>
-                          <input type="number" name="peserta_askep" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                          <input type="number" name="peserta_askep" value={formData.peserta_askep || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                         </div>
                         <div>
                           <label className="block text-xs text-slate-500 mb-1">Manager</label>
-                          <input type="number" name="peserta_mgr" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                          <input type="number" name="peserta_mgr" value={formData.peserta_mgr || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                         </div>
                         <div>
                           <label className="block text-xs text-slate-500 mb-1">Grup Manager</label>
-                          <input type="number" name="peserta_gm" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                          <input type="number" name="peserta_gm" value={formData.peserta_gm || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                         </div>
                         <div>
                           <label className="block text-xs text-slate-500 mb-1">Head</label>
-                          <input type="number" name="peserta_head" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                          <input type="number" name="peserta_head" value={formData.peserta_head || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                         </div>
                         <div className="sm:col-span-2">
                           <label className="block text-xs text-slate-500 mb-1 font-bold">Target Total (Auto)</label>
@@ -300,31 +341,23 @@ const DataManagement = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-slate-700 mb-1">Nama Program Reguler</label>
-                        <input required type="text" name="Nama_Program_reguler" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input required type="text" name="nama_program_reguler" value={formData.nama_program_reguler || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Batch</label>
-                        <input type="text" name="Batch" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input type="text" name="batch" value={formData.batch || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Lokasi Training</label>
-                        <input type="text" name="Lokasi_training" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input type="text" name="lokasi_training" value={formData.lokasi_training || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Mulai Program</label>
-                        <input required type="date" name="Mulai_program" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input required type="date" name="mulai_program" value={formData.mulai_program || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Selesai Program</label>
-                        <input required type="date" name="Selesai_program" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah Bulan Training</label>
-                        <input required type="number" min="0" name="jumlah_bulan_traning" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah Hari</label>
-                        <input required type="number" min="0" name="jumlah_hari" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input required type="date" name="selesai_program" value={formData.selesai_program || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                     </div>
                     
@@ -333,11 +366,11 @@ const DataManagement = () => {
                       <div className="grid grid-cols-3 gap-4">
                         <div>
                           <label className="block text-xs text-slate-600 mb-1">Total Orang</label>
-                          <input type="number" name="Total_orang" onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg" />
+                          <input type="number" name="total_orang" value={formData.total_orang || ''} onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg" />
                         </div>
                         <div>
                           <label className="block text-xs text-slate-600 mb-1">Promosi Mandor</label>
-                          <input type="number" name="Promosi_mandor" onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg" />
+                          <input type="number" name="promosi_mandor" value={formData.promosi_mandor || ''} onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg" />
                         </div>
                         <div>
                           <label className="block text-xs text-blue-600 font-bold mb-1">Fresh Graduate (Auto)</label>
@@ -366,12 +399,8 @@ const DataManagement = () => {
               >
                 Batal
               </button>
-              <button 
-                type="submit"
-                form="trainingForm"
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors shadow-sm"
-              >
-                Simpan Data
+              <button type="submit" form="trainingForm" className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-sm transition-colors">
+                {isEditMode ? 'Simpan Perubahan' : 'Simpan Data'}
               </button>
             </div>
           </div>
