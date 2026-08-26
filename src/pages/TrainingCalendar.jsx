@@ -20,6 +20,7 @@ const TrainingCalendar = () => {
   const [activeCategory, setActiveCategory] = useState('Reguler - Staf');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLokasi, setFilterLokasi] = useState('Semua Lokasi');
+  const [filterSubKategori, setFilterSubKategori] = useState('Semua Sub Kategori');
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -57,8 +58,11 @@ const TrainingCalendar = () => {
     const matchSearch = (item.title || '').toLowerCase().includes((searchTerm || '').toLowerCase());
     const matchLocation = filterLokasi === 'Semua Lokasi' || 
                          (item.location || '').toLowerCase().includes(filterLokasi.toLowerCase().replace('tc ', ''));
-    return matchCategory && matchSearch && matchLocation;
+    const matchSubKategori = filterSubKategori === 'Semua Sub Kategori' || item.subCategory === filterSubKategori;
+    return matchCategory && matchSearch && matchLocation && matchSubKategori;
   });
+
+  const uniqueSubKategori = [...new Set(data.filter(item => item.category === activeCategory).map(item => item.subCategory).filter(sub => sub && sub !== '-'))];
 
   const totalProgram = filteredData.length;
   const totalBatch = filteredData.reduce((sum, item) => sum + item.batchCount, 0);
@@ -168,6 +172,16 @@ const TrainingCalendar = () => {
               <option value="FRLC">FRLC</option>
               <option value="Kalbar">TC Kalbar</option>
               <option value="Kaltim">TC Kaltim</option>
+            </select>
+            <select 
+              value={filterSubKategori}
+              onChange={(e) => setFilterSubKategori(e.target.value)}
+              className="border border-slate-300 rounded-lg px-4 py-2 text-slate-700 text-sm font-medium outline-none focus:border-green-500 w-full sm:w-48 bg-white appearance-none cursor-pointer"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}>
+              <option value="Semua Sub Kategori">Semua Sub Kategori</option>
+              {uniqueSubKategori.map((sub, idx) => (
+                <option key={idx} value={sub}>{sub}</option>
+              ))}
             </select>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -323,18 +337,49 @@ const TrainingCalendar = () => {
                 </h3>
                 <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
                   {['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGS', 'SEPT', 'OKT', 'NOV', 'DES'].map((month, idx) => {
-                    // Spread batch dates roughly
-                    const isStartMonth = selectedProgram.start && !isNaN(selectedProgram.start) && idx === selectedProgram.start.getMonth();
-                    const isEndMonth = selectedProgram.end && !isNaN(selectedProgram.end) && idx === selectedProgram.end.getMonth();
-                    const isActive = isStartMonth || isEndMonth;
-                    const startMonth = selectedProgram.start && !isNaN(selectedProgram.start) ? selectedProgram.start.getMonth() : -1;
-                    const endMonth = selectedProgram.end && !isNaN(selectedProgram.end) ? selectedProgram.end.getMonth() : -1;
+                    const pStart = selectedProgram.start;
+                    const pEnd = selectedProgram.end;
+                    const targetYear = 2026;
+                    
+                    let isActive = false;
+                    let dateText = '-';
+                    
+                    if (pStart && !isNaN(pStart) && pEnd && !isNaN(pEnd)) {
+                      const startTotalMonths = pStart.getFullYear() * 12 + pStart.getMonth();
+                      const endTotalMonths = pEnd.getFullYear() * 12 + pEnd.getMonth();
+                      const currentMonthTotal = targetYear * 12 + idx;
+                      
+                      if (currentMonthTotal >= startTotalMonths && currentMonthTotal <= endTotalMonths) {
+                        isActive = true;
+                        const sDate = pStart.getDate();
+                        const eDate = pEnd.getDate();
+                        const monthsArr = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGS', 'SEPT', 'OKT', 'NOV', 'DES'];
+                        const sMonth = monthsArr[pStart.getMonth()];
+                        const eMonth = monthsArr[pEnd.getMonth()];
+                        
+                        if (startTotalMonths === endTotalMonths) {
+                          if (sDate === eDate) dateText = `${sDate} ${month}`;
+                          else dateText = `${sDate}-${eDate} ${month}`;
+                        } else {
+                          if (currentMonthTotal === startTotalMonths || currentMonthTotal === endTotalMonths) {
+                            dateText = `${sDate} ${sMonth} - ${eDate} ${eMonth}`;
+                          } else {
+                            dateText = 'Berlangsung';
+                          }
+                        }
+                      }
+                    } else if (pStart && !isNaN(pStart)) {
+                      if (pStart.getFullYear() === targetYear && pStart.getMonth() === idx) {
+                        isActive = true;
+                        dateText = `${pStart.getDate()} ${month}`;
+                      }
+                    }
                     
                     return (
                       <div key={month} className={`border rounded-xl p-4 text-center flex flex-col items-center justify-center min-h-[90px] shadow-sm transition-all ${isActive ? 'border-green-300 bg-green-50/50 scale-[1.02]' : 'border-slate-100 bg-white'}`}>
                         <span className={`text-xs font-bold tracking-wider mb-2 ${isActive ? 'text-green-800' : 'text-slate-400'}`}>{month}</span>
                         {isActive ? (
-                          <span className="text-sm font-extrabold text-green-700">{Math.ceil((selectedProgram.participants || 0) / (startMonth !== -1 && startMonth !== endMonth ? 2 : 1))} org</span>
+                          <span className="text-sm font-extrabold text-green-700">{dateText}</span>
                         ) : (
                           <span className="text-slate-300 font-bold">-</span>
                         )}
