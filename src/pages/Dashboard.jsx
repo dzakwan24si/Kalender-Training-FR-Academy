@@ -28,9 +28,9 @@ const Dashboard = () => {
         const enhancedData = result.data.map(item => {
           let category = 'Corporate';
           if (item.type === 'Reguler') {
-            category = item.title.toLowerCase().includes('mandor') ? 'Reguler - Mandor' : 'Reguler - Staf';
+            category = (item.title || '').toLowerCase().includes('mandor') ? 'Reguler - Mandor' : 'Reguler - Staf';
           } else {
-            const region = item.location?.toLowerCase() || '';
+            const region = (item.originalData?.region || '').toLowerCase();
             if (region.includes('riau')) category = 'Riau';
             else if (region.includes('kalbar')) category = 'Kalbar';
             else if (region.includes('kaltim')) category = 'Kaltim';
