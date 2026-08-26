@@ -170,9 +170,6 @@ const TrainingCalendar = () => {
               />
             </div>
           </div>
-          <button className="w-full sm:w-auto bg-[#4d7c38] hover:bg-[#3d632c] text-white px-5 py-2 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2">
-            <Plus size={16} /> Tambah Program
-          </button>
         </div>
 
         {/* Table */}

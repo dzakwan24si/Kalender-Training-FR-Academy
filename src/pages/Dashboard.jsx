@@ -38,15 +38,14 @@ const Dashboard = () => {
           }
           
           let subSektor = 'SOFT SKILLS';
-          if (item.type !== 'Reguler') {
-             const kat = item.originalData?.kategori_pelatihan?.toUpperCase() || '';
-             const jenis = item.originalData?.jenis_pelatihan?.toUpperCase() || '';
-             if (kat.includes('ESTATE') || jenis.includes('ESTATE')) subSektor = 'ESTATE';
-             else if (kat.includes('MILL') || jenis.includes('MILL')) subSektor = 'MILL';
-             else if (kat.includes('TRAKSI') || jenis.includes('TRAKSI')) subSektor = 'TRAKSI';
-             else if (kat.includes('DOWNSTREAM') || jenis.includes('DOWNSTREAM')) subSektor = 'DOWNSTREAM';
-             else if (kat.includes('ADMINISTRASI') || jenis.includes('FINANCE')) subSektor = 'ADMINISTRASI';
-          }
+          const kat = (item.originalData?.kategori_pelatihan || '').toUpperCase();
+          const jenis = (item.originalData?.jenis_pelatihan || item.title || '').toUpperCase();
+          
+          if (kat.includes('ESTATE') || jenis.includes('ESTATE')) subSektor = 'ESTATE';
+          else if (kat.includes('MILL') || jenis.includes('MILL')) subSektor = 'MILL';
+          else if (kat.includes('TRAKSI') || jenis.includes('TRAKSI')) subSektor = 'TRAKSI';
+          else if (kat.includes('DOWNSTREAM') || jenis.includes('DOWNSTREAM')) subSektor = 'DOWNSTREAM';
+          else if (kat.includes('ADMINISTRASI') || jenis.includes('FINANCE')) subSektor = 'ADMINISTRASI';
 
           return { ...item, category, subSektor };
         });
@@ -88,7 +87,7 @@ const Dashboard = () => {
   // Chart: Sub-Sektor (Horizontal Bar)
   const subSektorList = ['ESTATE', 'MILL', 'TRAKSI', 'DOWNSTREAM', 'ADMINISTRASI', 'SOFT SKILLS'];
   const subSektorData = subSektorList.map(sub => {
-    const items = filteredData.filter(d => d.type !== 'Reguler' && d.subSektor === sub);
+    const items = filteredData.filter(d => d.subSektor === sub);
     return {
       name: sub,
       value: items.reduce((sum, item) => sum + (item.originalData?.total_batch || 1), 0),
@@ -252,8 +251,7 @@ const Dashboard = () => {
         {/* Chart 4: Horizontal Bar */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <h3 className="font-extrabold text-slate-800 flex items-center gap-2 mb-6 border-b border-slate-100 pb-3 text-sm">
-            <LayoutIcon size={18} className="text-green-600" />
-            Distribusi Program Non-Reguler (Sub-Sektor)
+            <LayoutIcon size={18} className="text-green-600" /> Distribusi Program (Sub-Sektor)
           </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">

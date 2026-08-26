@@ -169,7 +169,9 @@ const DataManagement = () => {
                   <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-4 py-4 font-medium text-slate-800">{item.title}</td>
                     <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
-                      {item.start.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })} - {item.end.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })}
+                      {item.originalData?.start_date || item.originalData?.mulai_program
+                        ? `${item.start.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })} - ${item.end.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })}`
+                        : '-'}
                     </td>
                     <td className="px-4 py-4">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${item.type === 'Reguler' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
