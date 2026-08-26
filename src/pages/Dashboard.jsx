@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BookOpen, Layers, Users, Filter, PieChart as PieChartIcon, BarChart2, LayoutDashboard as LayoutIcon } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { getAllPelatihan } from '../services/supabase/trainingApi';
+import { getAllPelatihan } from '../services/supabase/client';
 
 const COLORS = ['#3b82f6', '#a855f7', '#4d7c38', '#84cc46', '#eab308', '#f97316'];
 
@@ -24,19 +24,7 @@ const Dashboard = () => {
       setLoading(true);
       const result = await getAllPelatihan();
       if (result.data) {
-        // Map raw data into requested categories
         const enhancedData = result.data.map(item => {
-          let category = 'Corporate';
-          if (item.type === 'Reguler') {
-            category = item.title.toLowerCase().includes('mandor') ? 'Reguler - Mandor' : 'Reguler - Staf';
-          } else {
-            const region = item.location?.toLowerCase() || '';
-            if (region.includes('riau')) category = 'Riau';
-            else if (region.includes('kalbar')) category = 'Kalbar';
-            else if (region.includes('kaltim')) category = 'Kaltim';
-            else category = 'Corporate';
-          }
-          
           let subSektor = 'SOFT SKILLS';
           if (item.type !== 'Reguler') {
              const kat = item.originalData?.kategori_pelatihan?.toUpperCase() || '';
@@ -48,9 +36,11 @@ const Dashboard = () => {
              else if (kat.includes('ADMINISTRASI') || jenis.includes('FINANCE')) subSektor = 'ADMINISTRASI';
           }
 
-          return { ...item, category, subSektor };
+          return { ...item, subSektor };
         });
         setData(enhancedData);
+      } else if (result.error) {
+        console.error("Error fetching data in Dashboard:", result.error);
       }
       setLoading(false);
     };
@@ -63,24 +53,19 @@ const Dashboard = () => {
 
   // Metrics
   const totalProgram = filteredData.length;
-  const totalBatch = filteredData.reduce((sum, item) => sum + (item.originalData?.total_batch || 1), 0);
+  const totalBatch = filteredData.reduce((sum, item) => sum + item.batchCount, 0);
   const totalPeserta = filteredData.reduce((sum, item) => sum + (item.participants || item.originalData?.target_total || 0), 0);
-  const totalUangSaku = filteredData.reduce((sum, item) => sum + (item.originalData?.uang_saku || 0), 0);
-  
-  const formatRupiah = (value) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
-  };
 
   // Chart Data: Distribusi & Batch per Kategori
   const kategoriList = ['Reguler - Staf', 'Reguler - Mandor', 'Riau', 'Kalbar', 'Kaltim', 'Corporate'];
-  const chartSourceData = filterKategori === 'Semua Kategori Program' ? data : data; 
+  const chartSourceData = data;
 
   const kategoriData = kategoriList.map(kat => {
     const items = chartSourceData.filter(d => d.category === kat);
     return {
       name: kat,
       value: items.length,
-      batch: items.reduce((sum, item) => sum + (item.originalData?.total_batch || 1), 0),
+      batch: items.reduce((sum, item) => sum + item.batchCount, 0),
       peserta: items.reduce((sum, item) => sum + (item.participants || item.originalData?.target_total || 0), 0)
     };
   });
@@ -91,7 +76,7 @@ const Dashboard = () => {
     const items = filteredData.filter(d => d.type !== 'Reguler' && d.subSektor === sub);
     return {
       name: sub,
-      value: items.reduce((sum, item) => sum + (item.originalData?.total_batch || 1), 0),
+      value: items.reduce((sum, item) => sum + item.batchCount, 0),
       fill: SUB_SEKTOR_COLORS[sub]
     };
   });

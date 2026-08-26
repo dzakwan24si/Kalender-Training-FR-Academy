@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, X } from 'lucide-react';
-import { getAllPelatihan, addPelatihanNonReguler, addPelatihanReguler } from '../services/supabase/trainingApi';
+import { getAllPelatihan, addPelatihanNonReguler, addPelatihanReguler } from '../services/supabase/client';
 
 const DataManagement = () => {
   const [data, setData] = useState([]);
@@ -22,7 +22,14 @@ const DataManagement = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    const loadData = async () => {
+      const result = await getAllPelatihan();
+      if (result.data) {
+        setData(result.data);
+      }
+      setLoading(false);
+    };
+    loadData();
   }, []);
 
   const handleInputChange = (e) => {
@@ -33,10 +40,13 @@ const DataManagement = () => {
 
     // Auto-calculation logic based on PRD requirement
     if (formType === 'reguler') {
-      if (name === 'total_orang' || name === 'promosi_mandor') {
-        const total = name === 'total_orang' ? parsedValue : (formData.total_orang || 0);
-        const promosi = name === 'promosi_mandor' ? parsedValue : (formData.promosi_mandor || 0);
-        updatedData.fresh_graduate = Math.max(0, total - promosi);
+      if (['Total_orang', 'Promosi_mandor', 'jumlah_bulan_traning', 'jumlah_hari'].includes(name)) {
+        const total = updatedData.Total_orang || 0;
+        const promosi = updatedData.Promosi_mandor || 0;
+        const freshGraduate = Math.max(0, total - promosi);
+        updatedData.Fresh_Graduate = freshGraduate;
+        updatedData.Total_training_days = (updatedData.jumlah_hari || 0) * total;
+        updatedData.Uang_saku = freshGraduate * (updatedData.jumlah_bulan_traning || 0) * 2500000;
       }
     } else {
       if (['peserta_non_staf', 'peserta_ast', 'peserta_askep', 'peserta_mgr', 'peserta_gm', 'peserta_head'].includes(name)) {
@@ -290,23 +300,31 @@ const DataManagement = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-slate-700 mb-1">Nama Program Reguler</label>
-                        <input required type="text" name="nama_program_reguler" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input required type="text" name="Nama_Program_reguler" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Batch</label>
-                        <input type="text" name="batch" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input type="text" name="Batch" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Lokasi Training</label>
-                        <input type="text" name="lokasi_training" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input type="text" name="Lokasi_training" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Mulai Program</label>
-                        <input required type="date" name="mulai_program" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input required type="date" name="Mulai_program" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Selesai Program</label>
-                        <input required type="date" name="selesai_program" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input required type="date" name="Selesai_program" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah Bulan Training</label>
+                        <input required type="number" min="0" name="jumlah_bulan_traning" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah Hari</label>
+                        <input required type="number" min="0" name="jumlah_hari" onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                     </div>
                     
@@ -315,15 +333,23 @@ const DataManagement = () => {
                       <div className="grid grid-cols-3 gap-4">
                         <div>
                           <label className="block text-xs text-slate-600 mb-1">Total Orang</label>
-                          <input type="number" name="total_orang" onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg" />
+                          <input type="number" name="Total_orang" onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg" />
                         </div>
                         <div>
                           <label className="block text-xs text-slate-600 mb-1">Promosi Mandor</label>
-                          <input type="number" name="promosi_mandor" onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg" />
+                          <input type="number" name="Promosi_mandor" onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg" />
                         </div>
                         <div>
                           <label className="block text-xs text-blue-600 font-bold mb-1">Fresh Graduate (Auto)</label>
-                          <input type="number" readOnly value={formData.fresh_graduate || ''} className="w-full p-2 border border-blue-200 bg-blue-100 text-blue-800 rounded-lg font-bold" />
+                          <input type="number" readOnly value={formData.Fresh_Graduate || ''} className="w-full p-2 border border-blue-200 bg-blue-100 text-blue-800 rounded-lg font-bold" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-600 mb-1">Total Training Days (Auto)</label>
+                          <input type="number" readOnly value={formData.Total_training_days || ''} className="w-full p-2 border border-slate-200 bg-slate-50 text-slate-600 rounded-lg font-bold" />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs text-slate-600 mb-1">Uang Saku (Auto)</label>
+                          <input type="number" readOnly value={formData.Uang_saku || ''} className="w-full p-2 border border-slate-200 bg-slate-50 text-slate-600 rounded-lg font-bold" />
                         </div>
                       </div>
                     </div>

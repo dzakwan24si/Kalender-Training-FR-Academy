@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllPelatihan } from '../services/supabase/trainingApi';
+import { getAllPelatihan } from '../services/supabase/client';
 import {
   GraduationCap, Users, MapPin, Building2, BookOpen, Layers,
   Search, Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, X
@@ -27,21 +27,9 @@ const TrainingCalendar = () => {
       setLoading(true);
       const result = await getAllPelatihan();
       if (result.data) {
-        // Map data to include category
-        const enhancedData = result.data.map(item => {
-          let category = 'Corporate';
-          if (item.type === 'Reguler') {
-            category = item.title.toLowerCase().includes('mandor') ? 'Reguler - Mandor' : 'Reguler - Staf';
-          } else {
-            const region = item.location?.toLowerCase() || '';
-            if (region.includes('riau')) category = 'Riau';
-            else if (region.includes('kalbar')) category = 'Kalbar';
-            else if (region.includes('kaltim')) category = 'Kaltim';
-            else category = 'Corporate';
-          }
-          return { ...item, category };
-        });
-        setData(enhancedData);
+        setData(result.data);
+      } else if (result.error) {
+        console.error("Error fetching data in TrainingCalendar:", result.error);
       }
       setLoading(false);
     };
@@ -55,7 +43,7 @@ const TrainingCalendar = () => {
   });
 
   const totalProgram = filteredData.length;
-  const totalBatch = filteredData.reduce((sum, item) => sum + (item.originalData?.total_batch || 1), 0);
+  const totalBatch = filteredData.reduce((sum, item) => sum + item.batchCount, 0);
   const totalPeserta = filteredData.reduce((sum, item) => sum + (item.participants || item.originalData?.target_total || 0), 0);
 
   if (loading) {
