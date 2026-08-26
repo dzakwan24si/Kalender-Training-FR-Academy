@@ -19,6 +19,7 @@ const TrainingCalendar = () => {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('Reguler - Staf');
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterLokasi, setFilterLokasi] = useState('Semua Lokasi');
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -54,7 +55,9 @@ const TrainingCalendar = () => {
   const filteredData = data.filter(item => {
     const matchCategory = item.category === activeCategory;
     const matchSearch = (item.title || '').toLowerCase().includes((searchTerm || '').toLowerCase());
-    return matchCategory && matchSearch;
+    const matchLocation = filterLokasi === 'Semua Lokasi' || 
+                         (item.location || '').toLowerCase().includes(filterLokasi.toLowerCase().replace('tc ', ''));
+    return matchCategory && matchSearch && matchLocation;
   });
 
   const totalProgram = filteredData.length;
@@ -155,12 +158,16 @@ const TrainingCalendar = () => {
         {/* Toolbar */}
         <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4 bg-white">
           <div className="flex w-full sm:w-auto gap-4">
-            <select className="border border-slate-300 rounded-lg px-4 py-2 text-slate-700 text-sm font-medium outline-none focus:border-green-500 w-full sm:w-48 bg-white appearance-none cursor-pointer"
+            <select 
+              value={filterLokasi}
+              onChange={(e) => setFilterLokasi(e.target.value)}
+              className="border border-slate-300 rounded-lg px-4 py-2 text-slate-700 text-sm font-medium outline-none focus:border-green-500 w-full sm:w-48 bg-white appearance-none cursor-pointer"
               style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}>
-              <option>Semua Lokasi</option>
-              <option>FRLC Kubang</option>
-              <option>TC Kalbar</option>
-              <option>TC Kaltim</option>
+              <option value="Semua Lokasi">Semua Lokasi</option>
+              <option value="Jakarta">Jakarta</option>
+              <option value="FRLC">FRLC</option>
+              <option value="Kalbar">TC Kalbar</option>
+              <option value="Kaltim">TC Kaltim</option>
             </select>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -181,6 +188,7 @@ const TrainingCalendar = () => {
             <thead>
               <tr className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
                 <th className="px-6 py-4">Nama Program</th>
+                <th className="px-4 py-4 text-center">Sub Kategori</th>
                 <th className="px-4 py-4 text-center">Jenis Program</th>
                 <th className="px-4 py-4 text-center">Region</th>
                 <th className="px-4 py-4 text-center">Target Batch</th>
@@ -192,14 +200,16 @@ const TrainingCalendar = () => {
             <tbody className="divide-y divide-slate-100">
               {filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-slate-500 text-sm">Tidak ada program yang sesuai dengan filter.</td>
+                  <td colSpan="8" className="px-6 py-12 text-center text-slate-500 text-sm">Tidak ada program yang sesuai dengan filter.</td>
                 </tr>
               ) : (
                 filteredData.map((item, idx) => (
                   <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <p className="font-bold text-slate-800 text-sm">{item.title}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{item.title}</p>
+                    </td>
+                    <td className="px-4 py-4 text-center text-sm text-slate-600 font-medium">
+                      {item.subCategory !== '-' && item.subCategory ? item.subCategory : <span className="text-slate-400">-</span>}
                     </td>
                     <td className="px-4 py-4 text-center">
                       <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${item.type === 'Reguler' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-orange-50 text-orange-600 border border-orange-100'
@@ -208,7 +218,7 @@ const TrainingCalendar = () => {
                       </span>
                     </td>
                     <td className="px-4 py-4 text-center text-sm text-slate-600">
-                      {item.originalData?.region || 'Nasional'}
+                      {item.region || 'Nasional'}
                     </td>
                     <td className="px-4 py-4 text-center text-sm font-bold text-slate-800">
                       {item.originalData?.total_batch || 1}
