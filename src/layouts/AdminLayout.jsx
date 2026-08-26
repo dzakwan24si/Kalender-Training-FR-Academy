@@ -4,12 +4,10 @@ import {
   LayoutDashboard,
   Calendar,
   Database,
-  Settings,
   Bell,
   Search,
   Menu,
-  X,
-  User
+  X
 } from 'lucide-react';
 
 const AdminLayout = () => {
