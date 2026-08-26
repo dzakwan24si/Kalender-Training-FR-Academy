@@ -28,7 +28,14 @@ const DataManagement = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    const loadData = async () => {
+      const result = await getAllPelatihan();
+      if (result.data) {
+        setData(result.data);
+      }
+      setLoading(false);
+    };
+    loadData();
   }, []);
 
   const handleInputChange = (e) => {
@@ -39,10 +46,13 @@ const DataManagement = () => {
 
     // Auto-calculation logic based on PRD requirement
     if (formType === 'reguler') {
-      if (name === 'total_orang' || name === 'promosi_mandor') {
-        const total = name === 'total_orang' ? parsedValue : (formData.total_orang || 0);
-        const promosi = name === 'promosi_mandor' ? parsedValue : (formData.promosi_mandor || 0);
-        updatedData.fresh_graduate = Math.max(0, total - promosi);
+      if (['Total_orang', 'Promosi_mandor', 'jumlah_bulan_traning', 'jumlah_hari'].includes(name)) {
+        const total = updatedData.Total_orang || 0;
+        const promosi = updatedData.Promosi_mandor || 0;
+        const freshGraduate = Math.max(0, total - promosi);
+        updatedData.Fresh_Graduate = freshGraduate;
+        updatedData.Total_training_days = (updatedData.jumlah_hari || 0) * total;
+        updatedData.Uang_saku = freshGraduate * (updatedData.jumlah_bulan_traning || 0) * 2500000;
       }
     } else {
       if (['peserta_non_staf', 'peserta_ast', 'peserta_askep', 'peserta_mgr', 'peserta_gm', 'peserta_head'].includes(name)) {
@@ -169,8 +179,8 @@ const DataManagement = () => {
                   <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-4 py-4 font-medium text-slate-800">{item.title}</td>
                     <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
-                      {item.originalData?.start_date || item.originalData?.mulai_program
-                        ? `${item.start.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })} - ${item.end.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })}`
+                      {item.originalData?.start_date || item.originalData?.mulai_program || item.originalData?.Mulai_program
+                        ? `${item.start && !isNaN(item.start) ? item.start.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' }) : 'TBD'} - ${item.end && !isNaN(item.end) ? item.end.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' }) : 'TBD'}`
                         : '-'}
                     </td>
                     <td className="px-4 py-4">
@@ -366,7 +376,15 @@ const DataManagement = () => {
                         </div>
                         <div>
                           <label className="block text-xs text-blue-600 font-bold mb-1">Fresh Graduate (Auto)</label>
-                          <input type="number" readOnly value={formData.fresh_graduate || ''} className="w-full p-2 border border-blue-200 bg-blue-100 text-blue-800 rounded-lg font-bold" />
+                          <input type="number" readOnly value={formData.Fresh_Graduate || ''} className="w-full p-2 border border-blue-200 bg-blue-100 text-blue-800 rounded-lg font-bold" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-600 mb-1">Total Training Days (Auto)</label>
+                          <input type="number" readOnly value={formData.Total_training_days || ''} className="w-full p-2 border border-slate-200 bg-slate-50 text-slate-600 rounded-lg font-bold" />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs text-slate-600 mb-1">Uang Saku (Auto)</label>
+                          <input type="number" readOnly value={formData.Uang_saku || ''} className="w-full p-2 border border-slate-200 bg-slate-50 text-slate-600 rounded-lg font-bold" />
                         </div>
                       </div>
                     </div>

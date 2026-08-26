@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllPelatihan } from '../services/supabase/trainingApi';
+import { getAllPelatihan } from '../services/supabase/client';
 import {
   GraduationCap, Users, MapPin, Building2, BookOpen, Layers,
   Search, Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, X
@@ -27,6 +27,9 @@ const TrainingCalendar = () => {
       setLoading(true);
       const result = await getAllPelatihan();
       if (result.data) {
+        setData(result.data);
+      } else if (result.error) {
+        console.error("Error fetching data in TrainingCalendar:", result.error);
         // Map data to include category
         const enhancedData = result.data.map(item => {
           let category = 'Corporate';
@@ -55,7 +58,7 @@ const TrainingCalendar = () => {
   });
 
   const totalProgram = filteredData.length;
-  const totalBatch = filteredData.reduce((sum, item) => sum + (item.originalData?.total_batch || 1), 0);
+  const totalBatch = filteredData.reduce((sum, item) => sum + item.batchCount, 0);
   const totalPeserta = filteredData.reduce((sum, item) => sum + (item.participants || item.originalData?.target_total || 0), 0);
 
   if (loading) {
@@ -311,9 +314,9 @@ const TrainingCalendar = () => {
                 <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
                   {['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGS', 'SEPT', 'OKT', 'NOV', 'DES'].map((month, idx) => {
                     // Spread batch dates roughly
-                    const startMonth = selectedProgram.start instanceof Date && !isNaN(selectedProgram.start) ? selectedProgram.start.getMonth() : -1;
-                    const endMonth = selectedProgram.end instanceof Date && !isNaN(selectedProgram.end) ? selectedProgram.end.getMonth() : -1;
-                    const isActive = (idx === startMonth || idx === endMonth) && startMonth !== -1;
+                    const isStartMonth = selectedProgram.start && !isNaN(selectedProgram.start) && idx === selectedProgram.start.getMonth();
+                    const isEndMonth = selectedProgram.end && !isNaN(selectedProgram.end) && idx === selectedProgram.end.getMonth();
+                    const isActive = isStartMonth || isEndMonth;
                     
                     return (
                       <div key={month} className={`border rounded-xl p-4 text-center flex flex-col items-center justify-center min-h-[90px] shadow-sm transition-all ${isActive ? 'border-green-300 bg-green-50/50 scale-[1.02]' : 'border-slate-100 bg-white'}`}>
