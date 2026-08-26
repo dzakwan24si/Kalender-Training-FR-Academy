@@ -20,7 +20,6 @@ const AdminLayout = () => {
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Kalender Pelatihan', href: '/calendar', icon: Calendar },
     { name: 'Manajemen Data', href: '/data', icon: Database },
-    { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
   return (
@@ -107,18 +106,6 @@ const AdminLayout = () => {
               <Bell size={20} />
               <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
             </button>
-
-            <div className="h-8 w-px bg-slate-200 hidden sm:block"></div>
-
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:flex flex-col items-end">
-                <span className="text-sm font-semibold text-slate-700">Admin Utama</span>
-                <span className="text-xs text-slate-500">Super Admin</span>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-green-100 border border-green-200 flex items-center justify-center text-green-700">
-                <User size={20} />
-              </div>
-            </div>
           </div>
         </header>
 
