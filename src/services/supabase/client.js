@@ -15,15 +15,18 @@ const normalizeRegion = (location) => {
   return 'Corporate';
 };
 
-const getCategory = (type, title, location) => {
-  const region = normalizeRegion(location);
+const getCategory = (type, title, region) => {
   if (type === 'Reguler') {
-    if (region === 'Riau') return 'Reguler - Staf';
-    if (region === 'Kaltim' || region === 'Kalbar') return 'Reguler - Mandor';
+    const normRegion = normalizeRegion(region);
+    if (normRegion === 'Riau') return 'Reguler - Staf';
+    if (normRegion === 'Kaltim' || normRegion === 'Kalbar') return 'Reguler - Mandor';
     return title.toLowerCase().includes('mandor') ? 'Reguler - Mandor' : 'Reguler - Staf';
   }
 
-  if (region !== 'Corporate') return region;
+  const normalizedRegion = (region || '').toLowerCase();
+  if (normalizedRegion.includes('riau')) return 'Riau';
+  if (normalizedRegion.includes('kalbar')) return 'Kalbar';
+  if (normalizedRegion.includes('kaltim')) return 'Kaltim';
   return 'Corporate';
 };
 
@@ -56,7 +59,7 @@ export const getAllPelatihan = async () => {
     type: 'Non-Reguler',
     location: item.lokasi_training,
     region: item.region || normalizeRegion(item.lokasi_training),
-    category: getCategory('Non-Reguler', item.jenis_pelatihan, item.lokasi_training),
+    category: getCategory('Non-Reguler', item.jenis_pelatihan, item.region),
     batchCount: Number(item.total_batch) || 1,
     participants: item.target_total || 0,
     trainer: item.trainer,
@@ -98,4 +101,20 @@ export const addPelatihanReguler = async (data) => {
     delete dbData.jumlah_bulan_traning;
   }
   return supabase.from('Program_reguler').insert([dbData]).select();
+};
+
+export const updatePelatihanNonReguler = async (id, data) => {
+  return supabase.from('Program_non_reguler').update(data).eq('id_nonreguler', id).select();
+};
+
+export const deletePelatihanNonReguler = async (id) => {
+  return supabase.from('Program_non_reguler').delete().eq('id_nonreguler', id);
+};
+
+export const updatePelatihanReguler = async (id, data) => {
+  return supabase.from('Program_reguler').update(data).eq('Program_reguler_id', id).select();
+};
+
+export const deletePelatihanReguler = async (id) => {
+  return supabase.from('Program_reguler').delete().eq('Program_reguler_id', id);
 };

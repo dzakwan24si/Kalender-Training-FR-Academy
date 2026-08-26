@@ -4,7 +4,7 @@ import {
   getAllPelatihan, addPelatihanNonReguler, addPelatihanReguler,
   updatePelatihanNonReguler, deletePelatihanNonReguler,
   updatePelatihanReguler, deletePelatihanReguler 
-} from '../services/supabase/trainingApi';
+} from '../services/supabase/client';
 
 const DataManagement = () => {
   const [data, setData] = useState([]);
@@ -12,6 +12,9 @@ const DataManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formType, setFormType] = useState('non_reguler'); // 'non_reguler' or 'reguler'
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filterType, setFilterType] = useState('Semua');
+  const ITEMS_PER_PAGE = 25;
 
   // Form State
   const [formData, setFormData] = useState({});
@@ -92,8 +95,8 @@ const DataManagement = () => {
       if (editData.start_date) editData.start_date = editData.start_date.split('T')[0];
       if (editData.end_date) editData.end_date = editData.end_date.split('T')[0];
     } else {
-      if (editData.mulai_program) editData.mulai_program = editData.mulai_program.split('T')[0];
-      if (editData.selesai_program) editData.selesai_program = editData.selesai_program.split('T')[0];
+      if (editData.Mulai_program) editData.Mulai_program = editData.Mulai_program.split('T')[0];
+      if (editData.Selesai_program) editData.Selesai_program = editData.Selesai_program.split('T')[0];
     }
 
     setFormData(editData);
@@ -114,10 +117,16 @@ const DataManagement = () => {
     }
   };
 
-  const filteredData = data.filter(item => 
-    item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    item.location?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredData = data.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          item.location?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === 'Semua' || item.type === filterType;
+    return matchesSearch && matchesType;
+  });
+
+  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedData = filteredData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   return (
     <div className="space-y-6">
@@ -136,15 +145,26 @@ const DataManagement = () => {
       
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
         <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Cari pelatihan..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none transition-all"
-            />
+          <div className="flex w-full sm:w-auto gap-4">
+            <select 
+              value={filterType} 
+              onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }} 
+              className="border border-slate-300 rounded-lg px-4 py-2 text-slate-700 text-sm font-medium outline-none focus:border-green-500 w-full sm:w-48 bg-white appearance-none cursor-pointer"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}>
+              <option value="Semua">Semua Tipe</option>
+              <option value="Reguler">Reguler</option>
+              <option value="Non-Reguler">Non-Reguler</option>
+            </select>
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input 
+                type="text" 
+                placeholder="Cari pelatihan..." 
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none transition-all"
+              />
+            </div>
           </div>
         </div>
 
@@ -170,12 +190,12 @@ const DataManagement = () => {
                     <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
                   </td>
                 </tr>
-              ) : filteredData.length === 0 ? (
+              ) : paginatedData.length === 0 ? (
                 <tr>
                   <td colSpan="9" className="px-4 py-8 text-center text-slate-500">Tidak ada data ditemukan.</td>
                 </tr>
               ) : (
-                filteredData.map((item) => (
+                paginatedData.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-4 py-4 font-medium text-slate-800">{item.title}</td>
                     <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
@@ -211,12 +231,56 @@ const DataManagement = () => {
         </div>
         
         {/* Pagination Placeholder */}
-        <div className="p-4 border-t border-slate-200 flex items-center justify-between text-sm text-slate-500 bg-slate-50">
-          <span>Menampilkan 1 hingga {filteredData.length} dari {filteredData.length} data</span>
+        <div className="p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-sm text-slate-500 bg-slate-50 gap-4">
+          <span>Menampilkan {filteredData.length === 0 ? 0 : startIndex + 1} hingga {Math.min(startIndex + ITEMS_PER_PAGE, filteredData.length)} dari {filteredData.length} data</span>
           <div className="flex gap-1">
-            <button className="px-3 py-1 border border-slate-300 rounded bg-white hover:bg-slate-50 disabled:opacity-50">Sebelumnya</button>
-            <button className="px-3 py-1 border border-slate-300 rounded bg-green-600 text-white disabled:opacity-50">1</button>
-            <button className="px-3 py-1 border border-slate-300 rounded bg-white hover:bg-slate-50 disabled:opacity-50">Selanjutnya</button>
+            <button 
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1 || loading}
+              className="px-3 py-1 border border-slate-300 rounded bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-700 font-medium transition-colors"
+            >
+              Sebelumnya
+            </button>
+            
+            <div className="flex items-center gap-1 mx-2">
+              {Array.from({ length: totalPages }).map((_, i) => {
+                // Show pages around current page to avoid crowding
+                if (totalPages > 7) {
+                  if (i === 0 || i === totalPages - 1 || (i >= currentPage - 2 && i <= currentPage)) {
+                    return (
+                      <button 
+                        key={i} 
+                        onClick={() => setCurrentPage(i + 1)}
+                        className={`w-8 h-8 flex items-center justify-center border rounded font-bold transition-colors ${currentPage === i + 1 ? 'border-green-600 bg-green-600 text-white' : 'border-slate-300 bg-white hover:bg-slate-50 text-slate-700'}`}
+                      >
+                        {i + 1}
+                      </button>
+                    );
+                  }
+                  if (i === 1 && currentPage > 3) return <span key={i} className="px-1 text-slate-400">...</span>;
+                  if (i === totalPages - 2 && currentPage < totalPages - 2) return <span key={i} className="px-1 text-slate-400">...</span>;
+                  return null;
+                }
+                
+                return (
+                  <button 
+                    key={i} 
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`w-8 h-8 flex items-center justify-center border rounded font-bold transition-colors ${currentPage === i + 1 ? 'border-green-600 bg-green-600 text-white' : 'border-slate-300 bg-white hover:bg-slate-50 text-slate-700'}`}
+                  >
+                    {i + 1}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button 
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages || totalPages === 0 || loading}
+              className="px-3 py-1 border border-slate-300 rounded bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-700 font-medium transition-colors"
+            >
+              Selanjutnya
+            </button>
           </div>
         </div>
       </div>
@@ -343,23 +407,23 @@ const DataManagement = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-slate-700 mb-1">Nama Program Reguler</label>
-                        <input required type="text" name="nama_program_reguler" value={formData.nama_program_reguler || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input required type="text" name="Nama_Program_reguler" value={formData.Nama_Program_reguler || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Batch</label>
-                        <input type="text" name="batch" value={formData.batch || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input type="text" name="Batch" value={formData.Batch || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Lokasi Training</label>
-                        <input type="text" name="lokasi_training" value={formData.lokasi_training || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input type="text" name="Lokasi_training" value={formData.Lokasi_training || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Mulai Program</label>
-                        <input required type="date" name="mulai_program" value={formData.mulai_program || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input required type="date" name="Mulai_program" value={formData.Mulai_program || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Selesai Program</label>
-                        <input required type="date" name="selesai_program" value={formData.selesai_program || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <input required type="date" name="Selesai_program" value={formData.Selesai_program || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                     </div>
                     
@@ -368,11 +432,11 @@ const DataManagement = () => {
                       <div className="grid grid-cols-3 gap-4">
                         <div>
                           <label className="block text-xs text-slate-600 mb-1">Total Orang</label>
-                          <input type="number" name="total_orang" value={formData.total_orang || ''} onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg" />
+                          <input type="number" name="Total_orang" value={formData.Total_orang || ''} onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg" />
                         </div>
                         <div>
                           <label className="block text-xs text-slate-600 mb-1">Promosi Mandor</label>
-                          <input type="number" name="promosi_mandor" value={formData.promosi_mandor || ''} onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg" />
+                          <input type="number" name="Promosi_mandor" value={formData.Promosi_mandor || ''} onChange={handleInputChange} className="w-full p-2 border border-blue-200 rounded-lg" />
                         </div>
                         <div>
                           <label className="block text-xs text-blue-600 font-bold mb-1">Fresh Graduate (Auto)</label>
