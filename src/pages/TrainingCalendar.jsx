@@ -326,7 +326,7 @@ const TrainingCalendar = () => {
                       {item.region || 'Nasional'}
                     </td>
                     <td className="px-4 py-4 text-center text-sm font-bold text-slate-800">
-                      {item.originalData?.total_batch || 1}
+                      {item.originalData?.total_batch ?? 1}
                     </td>
                     <td className="px-4 py-4 text-center text-sm font-bold text-slate-800">
                       {item.participants} <span className="text-xs text-slate-400 font-normal">org</span>
@@ -460,7 +460,7 @@ const TrainingCalendar = () => {
                         <div className="flex items-center"><span className="text-slate-500 w-32">Tipe Training:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.tipe_training || '-'}</span></div>
                         <div className="flex items-center"><span className="text-slate-500 w-32">Total Jam / Hari:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.total_jam || 0} Jam / {selectedProgram.originalData?.total_hari || 0} Hari</span></div>
                         <div className="flex items-center"><span className="text-slate-500 w-32">Total Training Days:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.td_total || 0}</span></div>
-                        <div className="flex items-center"><span className="text-slate-500 w-32">Rencana Batch:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.total_batch || 1} Batch</span></div>
+                        <div className="flex items-center"><span className="text-slate-500 w-32">Rencana Batch:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.total_batch ?? 0} Batch</span></div>
                       </>
                     )}
                   </div>

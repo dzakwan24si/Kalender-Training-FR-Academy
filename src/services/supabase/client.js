@@ -66,7 +66,7 @@ export const getAllPelatihan = async () => {
     region: item.region || normalizeRegion(item.lokasi_training),
     category: getCategory('Non-Reguler', item.jenis_pelatihan, item.region, item.sub_kategori),
     subCategory: item.sub_kategori || '-',
-    batchCount: Number(item.total_batch) || 1,
+    batchCount: item.total_batch !== null && item.total_batch !== undefined ? Number(item.total_batch) : 1,
     participants: item.target_total || 0,
     trainer: item.trainer,
     originalData: item

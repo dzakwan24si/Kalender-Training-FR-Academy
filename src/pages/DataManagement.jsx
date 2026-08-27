@@ -76,7 +76,15 @@ const DataManagement = () => {
 
   const handleDateChange = (dateObjects) => {
     if (!dateObjects || dateObjects.length === 0) {
-      setFormData(prev => ({ ...prev, tanggal_pelaksanaan: [] }));
+      const updates = { tanggal_pelaksanaan: [] };
+      if (formType === 'reguler') {
+        updates.Mulai_program = null;
+        updates.Selesai_program = null;
+      } else {
+        updates.start_date = null;
+        updates.end_date = null;
+      }
+      setFormData(prev => ({ ...prev, ...updates }));
       return;
     }
     
@@ -495,7 +503,7 @@ const DataManagement = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Trainer</label>
-                        <select required name="trainer" value={formData.trainer || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
+                        <select name="trainer" value={formData.trainer || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
                           <option value="">Pilih Trainer</option>
                           <option value="Eksternal">Eksternal</option>
                           <option value="Internal">Internal</option>
@@ -517,6 +525,10 @@ const DataManagement = () => {
                           <option value="Downstream">Downstream</option>
                           <option value="Softskill">Softskill</option>
                         </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Total Batch</label>
+                        <input type="number" name="total_batch" value={formData.total_batch || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Pelaksanaan (Multi)</label>
