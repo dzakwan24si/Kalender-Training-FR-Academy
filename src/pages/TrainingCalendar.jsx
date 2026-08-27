@@ -532,7 +532,7 @@ const TrainingCalendar = () => {
                       return (
                         <div
                           key={idx}
-                          className={`min-h-[64px] p-2 border-b border-r border-slate-100 flex flex-col items-center justify-start ${(idx + 1) % 7 === 0 ? 'border-r-0' : ''} ${!cell.inMonth ? 'bg-slate-50/40' : 'bg-white'}`}
+                          className={`min-h-16 p-2 border-b border-r border-slate-100 flex flex-col items-center justify-start ${(idx + 1) % 7 === 0 ? 'border-r-0' : ''} ${!cell.inMonth ? 'bg-slate-50/40' : 'bg-white'}`}
                         >
                           <span
                             className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold ${
