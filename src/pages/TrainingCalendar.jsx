@@ -120,6 +120,8 @@ const TrainingCalendar = () => {
   };
 
   const isDateInRange = (date) => {
+    if (date.getDay() === 0) return false; // Minggu tidak pernah ditandai training
+
     const dates = selectedProgram?.tanggal_pelaksanaan;
     if (!dates || !Array.isArray(dates) || dates.length === 0) return false;
     
