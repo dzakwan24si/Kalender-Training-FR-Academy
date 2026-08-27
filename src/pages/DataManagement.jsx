@@ -538,6 +538,14 @@ const DataManagement = () => {
                         <label className="block text-sm font-medium text-slate-700 mb-1">Total Batch</label>
                         <input type="number" name="total_batch" value={formData.total_batch || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Total Hari</label>
+                        <input type="number" name="total_hari" value={formData.total_hari || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Total Jam / Hari</label>
+                        <input type="number" name="total_jam" value={formData.total_jam || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                      </div>
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Pelaksanaan (Multi)</label>
                         <DatePicker 
