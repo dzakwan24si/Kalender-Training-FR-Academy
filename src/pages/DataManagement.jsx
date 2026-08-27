@@ -574,12 +574,22 @@ const DataManagement = () => {
                         <label className="block text-sm font-medium text-slate-700 mb-1">Lokasi Training</label>
                         <input type="text" name="Lokasi_training" value={formData.Lokasi_training || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
-                      <div className="col-span-2">
+                      <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Sub Kategori</label>
                         <select name="jenis_program_reguler" value={formData.jenis_program_reguler || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
                           <option value="">Pilih Sub Kategori...</option>
                           <option value="Training Reguler - Staf">Training Reguler - Staf</option>
                           <option value="Training Reguler - Mandor">Training Reguler - Mandor</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Region</label>
+                        <select name="Region" value={formData.Region || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
+                          <option value="">Pilih Region</option>
+                          <option value="Riau">Riau</option>
+                          <option value="Kalbar">Kalbar</option>
+                          <option value="Kaltim FR">Kaltim FR</option>
+                          <option value="Corporate">Corporate</option>
                         </select>
                       </div>
                       <div className="col-span-2">
