@@ -14,6 +14,8 @@ const DataManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [filterType, setFilterType] = useState('Semua');
+  const [filterRegion, setFilterRegion] = useState('Semua Region');
+  const [filterSubKategori, setFilterSubKategori] = useState('Semua Sub Kategori');
   const ITEMS_PER_PAGE = 25;
 
   // Form State
@@ -101,7 +103,7 @@ const DataManagement = () => {
 
     setFormData(editData);
     setIsEditMode(true);
-    setEditId(isReguler ? item.originalData.program_reguler_id : item.originalData.id_nonreguler);
+    setEditId(isReguler ? item.originalData.Program_reguler_id : item.originalData.id_nonreguler);
     setIsModalOpen(true);
   };
 
@@ -109,7 +111,7 @@ const DataManagement = () => {
     const isReguler = item.type === 'Reguler';
     if (window.confirm(`Yakin ingin menghapus data ${item.title}?`)) {
       if (isReguler) {
-        await deletePelatihanReguler(item.originalData.program_reguler_id);
+        await deletePelatihanReguler(item.originalData.Program_reguler_id);
       } else {
         await deletePelatihanNonReguler(item.originalData.id_nonreguler);
       }
@@ -121,8 +123,13 @@ const DataManagement = () => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.location?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'Semua' || item.type === filterType;
-    return matchesSearch && matchesType;
-  });
+    const matchesRegion = filterRegion === 'Semua Region' || item.region === filterRegion;
+    const matchesSub = filterSubKategori === 'Semua Sub Kategori' || item.subCategory === filterSubKategori;
+    return matchesSearch && matchesType && matchesRegion && matchesSub;
+  }).sort((a, b) => a.title.localeCompare(b.title));
+
+  const uniqueRegions = [...new Set(data.map(item => item.region).filter(Boolean))];
+  const uniqueSubKategories = [...new Set(data.filter(item => filterType === 'Semua' || item.type === filterType).map(item => item.subCategory).filter(sub => sub && sub !== '-'))];
 
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -155,6 +162,26 @@ const DataManagement = () => {
               <option value="Reguler">Reguler</option>
               <option value="Non-Reguler">Non-Reguler</option>
             </select>
+            <select 
+              value={filterRegion} 
+              onChange={(e) => { setFilterRegion(e.target.value); setCurrentPage(1); }} 
+              className="border border-slate-300 rounded-lg px-4 py-2 text-slate-700 text-sm font-medium outline-none focus:border-green-500 w-full sm:w-48 bg-white appearance-none cursor-pointer"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}>
+              <option value="Semua Region">Semua Region</option>
+              {uniqueRegions.map((reg, idx) => (
+                <option key={idx} value={reg}>{reg}</option>
+              ))}
+            </select>
+            <select 
+              value={filterSubKategori} 
+              onChange={(e) => { setFilterSubKategori(e.target.value); setCurrentPage(1); }} 
+              className="border border-slate-300 rounded-lg px-4 py-2 text-slate-700 text-sm font-medium outline-none focus:border-green-500 w-full sm:w-48 bg-white appearance-none cursor-pointer"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}>
+              <option value="Semua Sub Kategori">Semua Sub Kategori</option>
+              {uniqueSubKategories.map((sub, idx) => (
+                <option key={idx} value={sub}>{sub}</option>
+              ))}
+            </select>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
@@ -173,8 +200,10 @@ const DataManagement = () => {
             <thead>
               <tr className="bg-white text-slate-500 text-sm border-b border-slate-200">
                 <th className="px-4 py-3 font-medium">Program Pelatihan</th>
+                <th className="px-4 py-3 font-medium">Sub Kategori</th>
                 <th className="px-4 py-3 font-medium">Tanggal</th>
                 <th className="px-4 py-3 font-medium">Tipe</th>
+                <th className="px-4 py-3 font-medium">Region</th>
                 <th className="px-4 py-3 font-medium">Lokasi</th>
                 <th className="px-4 py-3 font-medium">Trainer</th>
                 <th className="px-4 py-3 font-medium">Total Jam/Hari</th>
@@ -186,18 +215,21 @@ const DataManagement = () => {
             <tbody className="text-sm divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="px-4 py-12 text-center">
+                  <td colSpan="11" className="px-4 py-12 text-center">
                     <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
                   </td>
                 </tr>
               ) : paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="px-4 py-8 text-center text-slate-500">Tidak ada data ditemukan.</td>
+                  <td colSpan="11" className="px-4 py-8 text-center text-slate-500">Tidak ada data ditemukan.</td>
                 </tr>
               ) : (
                 paginatedData.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-4 py-4 font-medium text-slate-800">{item.title}</td>
+                    <td className="px-4 py-4 text-slate-600 text-sm">
+                      {item.subCategory !== '-' && item.subCategory ? item.subCategory : <span className="text-slate-400">-</span>}
+                    </td>
                     <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
                       {item.originalData?.start_date || item.originalData?.mulai_program || item.originalData?.Mulai_program
                         ? `${item.start && !isNaN(item.start) ? item.start.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' }) : 'TBD'} - ${item.end && !isNaN(item.end) ? item.end.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' }) : 'TBD'}`
@@ -208,6 +240,7 @@ const DataManagement = () => {
                         {item.type}
                       </span>
                     </td>
+                    <td className="px-4 py-4 text-slate-600">{item.region || '-'}</td>
                     <td className="px-4 py-4 text-slate-600">{item.location}</td>
                     <td className="px-4 py-4 text-slate-600">{item.trainer || '-'}</td>
                     <td className="px-4 py-4 text-slate-600 whitespace-nowrap">

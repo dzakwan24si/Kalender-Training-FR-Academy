@@ -89,7 +89,14 @@ const AdminLayout = () => {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        {/* Mobile menu toggle (visible only on mobile) */}
+        <button
+          className="lg:hidden absolute top-4 right-4 z-40 bg-white p-2 rounded-full shadow-md text-slate-500 hover:text-slate-700 border border-slate-200"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <Menu size={20} />
+        </button>
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-8">

@@ -75,7 +75,7 @@ const TrainingCalendar = () => {
                          (item.location || '').toLowerCase().includes(filterLokasi.toLowerCase().replace('tc ', ''));
     const matchSubKategori = filterSubKategori === 'Semua Sub Kategori' || item.subCategory === filterSubKategori;
     return matchCategory && matchSearch && matchLocation && matchSubKategori;
-  });
+  }).sort((a, b) => a.title.localeCompare(b.title));
 
   const uniqueSubKategori = [...new Set(data.filter(item => item.category === activeCategory).map(item => item.subCategory).filter(sub => sub && sub !== '-'))];
 
@@ -128,12 +128,12 @@ const TrainingCalendar = () => {
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
 
       {/* Header */}
-      <div className="flex justify-between items-center bg-transparent mt-2">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-transparent mt-6 md:mt-2 pr-12 md:pr-0">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Kalender Training FR Academy</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight leading-tight">Kalender Training FR Academy</h1>
           <p className="text-slate-500 text-sm mt-1">Kelola master data program pelatihan.</p>
         </div>
-        <div className="bg-white border border-slate-200 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-sm">
+        <div className="bg-white border border-slate-200 px-3 py-1.5 md:px-4 rounded-full flex items-center gap-2 shadow-sm whitespace-nowrap self-start md:self-auto">
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
           <span className="font-semibold text-slate-700 text-xs">Tahun Aktif: {new Date().getFullYear()}</span>
         </div>
@@ -355,12 +355,24 @@ const TrainingCalendar = () => {
                     <span className="text-green-600 font-bold border border-green-600 rounded-full w-4 h-4 flex items-center justify-center text-[10px]">i</span> Informasi Umum
                   </h3>
                   <div className="space-y-4 text-sm">
-                    <div className="flex items-center"><span className="text-slate-500 w-32">Region:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.region || 'Nasional'}</span></div>
+                    <div className="flex items-center"><span className="text-slate-500 w-32">Region:</span><span className="font-bold text-slate-800">{selectedProgram.region || 'Nasional'}</span></div>
                     <div className="flex items-center"><span className="text-slate-500 w-32">Trainer:</span><span className="font-bold text-slate-800">{selectedProgram.trainer || 'Internal'}</span></div>
-                    <div className="flex items-center"><span className="text-slate-500 w-32">Tipe Training:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.tipe_training || '-'}</span></div>
-                    <div className="flex items-center"><span className="text-slate-500 w-32">Total Jam / Hari:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.total_jam ? `${selectedProgram.originalData?.total_jam} Jam / ${selectedProgram.originalData?.total_hari || 0} Hari` : '-'}</span></div>
-                    <div className="flex items-center"><span className="text-slate-500 w-32">Rencana Batch:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.total_batch || 1} Batch</span></div>
+                    <div className="flex items-center"><span className="text-slate-500 w-32">Sub Kategori:</span><span className="font-bold text-slate-800">{selectedProgram.subCategory || '-'}</span></div>
                     <div className="flex items-center"><span className="text-slate-500 w-32">Lokasi Training:</span><span className="font-bold text-slate-800">{selectedProgram.location || '-'}</span></div>
+                    {selectedProgram.type === 'Reguler' ? (
+                      <>
+                        <div className="flex items-center"><span className="text-slate-500 w-32">Total Hari:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.jumlah_hari || 0} Hari</span></div>
+                        <div className="flex items-center"><span className="text-slate-500 w-32">Durasi Program:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.jumlah_bulan_training || 0} Bulan</span></div>
+                        <div className="flex items-center"><span className="text-slate-500 w-32">Total Training Days:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.Total_training_days || 0}</span></div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center"><span className="text-slate-500 w-32">Tipe Training:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.tipe_training || '-'}</span></div>
+                        <div className="flex items-center"><span className="text-slate-500 w-32">Total Jam / Hari:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.total_jam || 0} Jam / {selectedProgram.originalData?.total_hari || 0} Hari</span></div>
+                        <div className="flex items-center"><span className="text-slate-500 w-32">Total Training Days:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.td_total || 0}</span></div>
+                        <div className="flex items-center"><span className="text-slate-500 w-32">Rencana Batch:</span><span className="font-bold text-slate-800">{selectedProgram.originalData?.total_batch || 1} Batch</span></div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -369,16 +381,25 @@ const TrainingCalendar = () => {
                   <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4 text-sm border-b border-slate-100 pb-3">
                     <Users size={16} className="text-green-600" /> Target & Breakdown Peserta
                   </h3>
-                  <div className="grid grid-cols-4 gap-3 text-center">
-                    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">Non Staff</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.peserta_non_staf || 0}</p></div>
-                    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">Assistant</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.peserta_ast || 0}</p></div>
-                    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">Askep</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.peserta_askep || 0}</p></div>
-                    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">Manager</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.peserta_mgr || 0}</p></div>
-                    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">GM</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.peserta_gm || 0}</p></div>
-                    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">Head</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.peserta_head || 0}</p></div>
-                    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">Staff</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.target_staf || 0}</p></div>
-                    <div className="bg-green-50/50 border-2 border-green-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-green-700 font-extrabold mb-1">Total Target</p><p className="font-bold text-green-700 text-base">{selectedProgram.participants}</p></div>
-                  </div>
+                  {selectedProgram.type === 'Reguler' ? (
+                    <div className="grid grid-cols-2 gap-3 text-center">
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">Promosi Mandor</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.Promosi_mandor || 0}</p></div>
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">Fresh Graduate</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.Fresh_Graduate || 0}</p></div>
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm col-span-2 text-left px-4 flex justify-between items-center"><span className="text-[11px] text-slate-500 font-medium">Estimasi Uang Saku</span><span className="font-bold text-slate-800">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(selectedProgram.originalData?.Uang_saku || 0)}</span></div>
+                      <div className="bg-green-50/50 border-2 border-green-200 rounded-xl p-3 shadow-sm col-span-2"><p className="text-[10px] text-green-700 font-extrabold mb-1">Total Peserta Target</p><p className="font-bold text-green-700 text-base">{selectedProgram.participants}</p></div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-3 text-center">
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">Non Staff</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.peserta_non_staf || 0}</p></div>
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">Assistant</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.peserta_ast || 0}</p></div>
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">Askep</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.peserta_askep || 0}</p></div>
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">Manager</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.peserta_mgr || 0}</p></div>
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">GM</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.peserta_gm || 0}</p></div>
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">Head</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.peserta_head || 0}</p></div>
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-slate-500 mb-1">Staff</p><p className="font-bold text-slate-800">{selectedProgram.originalData?.target_staf || 0}</p></div>
+                      <div className="bg-green-50/50 border-2 border-green-200 rounded-xl p-3 shadow-sm"><p className="text-[10px] text-green-700 font-extrabold mb-1">Total Target</p><p className="font-bold text-green-700 text-base">{selectedProgram.participants}</p></div>
+                    </div>
+                  )}
                 </div>
               </div>
 
