@@ -207,7 +207,32 @@ const DataManagement = () => {
     const matchesRegion = filterRegion === 'Semua Region' || item.region === filterRegion;
     const matchesSub = filterSubKategori === 'Semua Sub Kategori' || item.subCategory === filterSubKategori;
     return matchesSearch && matchesType && matchesRegion && matchesSub;
-  }).sort((a, b) => b.id.localeCompare(a.id)); // Default sort by latest id
+  }).sort((a, b) => {
+    if (a.type === 'Reguler' && b.type === 'Reguler') {
+      const order = ['FAT', 'MAT', 'TAT', 'DMT', 'AAT', 'PMT', 'PKT'];
+      const getPrefixIdx = (title) => {
+        const prefix = (title || '').split(' ')[0].toUpperCase();
+        const idx = order.indexOf(prefix);
+        return idx !== -1 ? idx : 999;
+      };
+      const idxA = getPrefixIdx(a.title);
+      const idxB = getPrefixIdx(b.title);
+      if (idxA !== idxB) return idxA - idxB;
+      return (a.title || '').localeCompare(b.title || '');
+    } else if (a.type !== 'Reguler' && b.type !== 'Reguler') {
+      const orderNonReg = ['SOFTSKILL', 'ESTATE', 'MILL', 'TRAKSI', 'DOWNSTREAM', 'ADMINISTRASI'];
+      const getSubIdx = (subCat) => {
+        const sub = (subCat || '').toUpperCase();
+        const idx = orderNonReg.findIndex(o => sub.includes(o));
+        return idx !== -1 ? idx : 999;
+      };
+      const idxA = getSubIdx(a.subCategory);
+      const idxB = getSubIdx(b.subCategory);
+      if (idxA !== idxB) return idxA - idxB;
+      return (b.id || '').localeCompare(a.id || '');
+    }
+    return (b.id || '').localeCompare(a.id || ''); // Default sort by latest id
+  });
 
   const uniqueRegions = [...new Set(data.map(item => item.region).filter(Boolean))];
   const uniqueSubKategories = [...new Set(data.filter(item => filterType === 'Semua' || item.type === filterType).map(item => item.subCategory).filter(sub => sub && sub !== '-'))];
@@ -550,6 +575,14 @@ const DataManagement = () => {
                         <input type="text" name="Lokasi_training" value={formData.Lokasi_training || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
                       <div className="col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Sub Kategori</label>
+                        <select name="jenis_program_reguler" value={formData.jenis_program_reguler || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
+                          <option value="">Pilih Sub Kategori...</option>
+                          <option value="Training Reguler - Staf">Training Reguler - Staf</option>
+                          <option value="Training Reguler - Mandor">Training Reguler - Mandor</option>
+                        </select>
+                      </div>
+                      <div className="col-span-2">
                         <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Pelaksanaan (Multi)</label>
                         <DatePicker 
                           multiple 
@@ -580,10 +613,18 @@ const DataManagement = () => {
                           <input type="number" readOnly value={formData.Fresh_Graduate || ''} className="w-full p-2 border border-blue-200 bg-blue-100 text-blue-800 rounded-lg font-bold" />
                         </div>
                         <div>
+                          <label className="block text-xs text-slate-600 mb-1">Total Hari</label>
+                          <input type="number" name="jumlah_hari" value={formData.jumlah_hari || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-600 mb-1">Durasi (Bulan)</label>
+                          <input type="number" name="jumlah_bulan_training" value={formData.jumlah_bulan_training || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        </div>
+                        <div>
                           <label className="block text-xs text-slate-600 mb-1">Total Training Days</label>
                           <input type="number" name="Total_training_days" value={formData.Total_training_days || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                         </div>
-                        <div className="col-span-2">
+                        <div className="col-span-3">
                           <label className="block text-xs text-slate-600 mb-1">Uang Saku</label>
                           <input type="number" name="Uang_saku" value={formData.Uang_saku || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                         </div>

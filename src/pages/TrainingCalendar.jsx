@@ -82,7 +82,30 @@ const TrainingCalendar = () => {
                          (item.location || '').toLowerCase().includes(filterLokasi.toLowerCase().replace('tc ', ''));
     const matchSubKategori = filterSubKategori === 'Semua Sub Kategori' || item.subCategory === filterSubKategori;
     return matchCategory && matchSearch && matchLocation && matchSubKategori;
-  }).sort((a, b) => a.title.localeCompare(b.title));
+  }).sort((a, b) => {
+    if (a.type === 'Reguler' && b.type === 'Reguler') {
+      const order = ['FAT', 'MAT', 'TAT', 'DMT', 'AAT', 'PMT', 'PKT'];
+      const getPrefixIdx = (title) => {
+        const prefix = (title || '').split(' ')[0].toUpperCase();
+        const idx = order.indexOf(prefix);
+        return idx !== -1 ? idx : 999;
+      };
+      const idxA = getPrefixIdx(a.title);
+      const idxB = getPrefixIdx(b.title);
+      if (idxA !== idxB) return idxA - idxB;
+    } else if (a.type !== 'Reguler' && b.type !== 'Reguler') {
+      const orderNonReg = ['SOFTSKILL', 'ESTATE', 'MILL', 'TRAKSI', 'DOWNSTREAM', 'ADMINISTRASI'];
+      const getSubIdx = (subCat) => {
+        const sub = (subCat || '').toUpperCase();
+        const idx = orderNonReg.findIndex(o => sub.includes(o));
+        return idx !== -1 ? idx : 999;
+      };
+      const idxA = getSubIdx(a.subCategory);
+      const idxB = getSubIdx(b.subCategory);
+      if (idxA !== idxB) return idxA - idxB;
+    }
+    return (a.title || '').localeCompare(b.title || '');
+  });
 
   const uniqueSubKategori = [...new Set(data.filter(item => item.category === activeCategory).map(item => item.subCategory).filter(sub => sub && sub !== '-'))];
 
