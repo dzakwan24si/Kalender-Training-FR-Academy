@@ -329,7 +329,7 @@ const DataManagement = () => {
                         ? `${item.originalData?.jumlah_hari || 0} Hari` 
                         : `${item.originalData?.total_jam || 0} Jam / ${item.originalData?.total_hari || 0} Hari`}
                     </td>
-                    <td className="px-4 py-4 text-slate-600 text-center font-medium">{item.originalData?.td_total || item.originalData?.total_training_days || '-'}</td>
+                    <td className="px-4 py-4 text-slate-600 text-center font-medium">{item.originalData?.td_total || item.originalData?.Total_training_days || '-'}</td>
                     <td className="px-4 py-4 text-slate-600 text-center font-medium">{item.participants}</td>
                     <td className="px-4 py-4 text-right">
                       <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
