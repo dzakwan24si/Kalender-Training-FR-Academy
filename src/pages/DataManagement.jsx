@@ -503,12 +503,20 @@ const DataManagement = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Trainer</label>
-                        <select name="trainer" value={formData.trainer || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
-                          <option value="">Pilih Trainer</option>
-                          <option value="Eksternal">Eksternal</option>
-                          <option value="Internal">Internal</option>
-                          <option value="Eksternal & Internal">Eksternal & Internal</option>
-                        </select>
+                        <input 
+                          type="text" 
+                          list="trainer-options" 
+                          name="trainer" 
+                          value={formData.trainer || ''} 
+                          onChange={handleInputChange} 
+                          placeholder="Pilih atau ketik nama trainer"
+                          className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white" 
+                        />
+                        <datalist id="trainer-options">
+                          <option value="Eksternal" />
+                          <option value="Internal" />
+                          <option value="Eksternal & Internal" />
+                        </datalist>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Lokasi Training</label>
