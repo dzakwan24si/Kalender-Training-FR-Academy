@@ -15,15 +15,22 @@ const normalizeRegion = (location) => {
   return 'Corporate';
 };
 
-const getCategory = (type, title, location) => {
-  const region = normalizeRegion(location);
+const getCategory = (type, title, region, subCategory) => {
   if (type === 'Reguler') {
-    if (region === 'Riau') return 'Reguler - Staf';
-    if (region === 'Kaltim' || region === 'Kalbar') return 'Reguler - Mandor';
-    return title.toLowerCase().includes('mandor') ? 'Reguler - Mandor' : 'Reguler - Staf';
+    if (subCategory && subCategory.toLowerCase().includes('mandor')) return 'Reguler - Mandor';
+    if (subCategory && subCategory.toLowerCase().includes('staf')) return 'Reguler - Staf';
+    if (title && title.toLowerCase().includes('mandor')) return 'Reguler - Mandor';
+
+    const normRegion = normalizeRegion(region);
+    if (normRegion === 'Riau') return 'Reguler - Staf';
+    if (normRegion === 'Kaltim' || normRegion === 'Kalbar') return 'Reguler - Mandor';
+    return 'Reguler - Staf';
   }
 
-  if (region !== 'Corporate') return region;
+  const normalizedRegion = (region || '').toLowerCase();
+  if (normalizedRegion.includes('riau')) return 'Riau';
+  if (normalizedRegion.includes('kalbar')) return 'Kalbar';
+  if (normalizedRegion.includes('kaltim')) return 'Kaltim';
   return 'Corporate';
 };
 
@@ -53,10 +60,12 @@ export const getAllPelatihan = async () => {
     title: item.jenis_pelatihan,
     start: item.start_date ? new Date(item.start_date) : null,
     end: item.end_date ? new Date(item.end_date) : null,
+    tanggal_pelaksanaan: Array.isArray(item.tanggal_pelaksanaan) ? item.tanggal_pelaksanaan.map(d => new Date(d)) : (item.start_date && item.end_date ? [new Date(item.start_date), new Date(item.end_date)] : []),
     type: 'Non-Reguler',
     location: item.lokasi_training,
     region: item.region || normalizeRegion(item.lokasi_training),
-    category: getCategory('Non-Reguler', item.jenis_pelatihan, item.lokasi_training),
+    category: getCategory('Non-Reguler', item.jenis_pelatihan, item.region, item.sub_kategori),
+    subCategory: item.sub_kategori || '-',
     batchCount: Number(item.total_batch) || 1,
     participants: item.target_total || 0,
     trainer: item.trainer,
@@ -68,10 +77,12 @@ export const getAllPelatihan = async () => {
     title: item.Nama_Program_reguler,
     start: item.Mulai_program ? new Date(item.Mulai_program) : null,
     end: item.Selesai_program ? new Date(item.Selesai_program) : null,
+    tanggal_pelaksanaan: Array.isArray(item.tanggal_pelaksanaan) ? item.tanggal_pelaksanaan.map(d => new Date(d)) : (item.Mulai_program && item.Selesai_program ? [new Date(item.Mulai_program), new Date(item.Selesai_program)] : []),
     type: 'Reguler',
     location: item.Lokasi_training,
-    region: normalizeRegion(item.Lokasi_training),
-    category: getCategory('Reguler', item.Nama_Program_reguler, item.Lokasi_training),
+    region: item.Region || normalizeRegion(item.Lokasi_training),
+    category: getCategory('Reguler', item.Nama_Program_reguler, item.Region || item.Lokasi_training, item.jenis_program_reguler),
+    subCategory: item.jenis_program_reguler || '-',
     batch: item.Batch,
     batchCount: 1,
     participants: item.Total_orang || 0,
@@ -98,4 +109,32 @@ export const addPelatihanReguler = async (data) => {
     delete dbData.jumlah_bulan_traning;
   }
   return supabase.from('Program_reguler').insert([dbData]).select();
+};
+
+export const updatePelatihanNonReguler = async (id, data) => {
+  const dbData = { ...data };
+  if (dbData.tipe_training) {
+    dbData.type_training = dbData.tipe_training;
+    delete dbData.tipe_training;
+  }
+  delete dbData.id_nonreguler;
+  return supabase.from('Program_non_reguler').update(dbData).eq('id_nonreguler', id).select();
+};
+
+export const deletePelatihanNonReguler = async (id) => {
+  return supabase.from('Program_non_reguler').delete().eq('id_nonreguler', id);
+};
+
+export const updatePelatihanReguler = async (id, data) => {
+  const dbData = { ...data };
+  if (dbData.jumlah_bulan_traning !== undefined) {
+    dbData.jumlah_bulan_training = dbData.jumlah_bulan_traning;
+    delete dbData.jumlah_bulan_traning;
+  }
+  delete dbData.Program_reguler_id;
+  return supabase.from('Program_reguler').update(dbData).eq('Program_reguler_id', id).select();
+};
+
+export const deletePelatihanReguler = async (id) => {
+  return supabase.from('Program_reguler').delete().eq('Program_reguler_id', id);
 };

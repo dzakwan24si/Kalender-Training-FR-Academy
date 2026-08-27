@@ -84,10 +84,10 @@ const Dashboard = () => {
   const renderLegend = (props) => {
     const { payload } = props;
     return (
-      <ul className="flex flex-col justify-center gap-3 text-xs text-slate-600 pl-4">
+      <ul className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-slate-600 mt-4">
         {payload.map((entry, index) => (
           <li key={`item-${index}`} className="flex items-center gap-2">
-            <span className="w-6 h-2 rounded-sm" style={{ backgroundColor: entry.color }}></span>
+            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></span>
             {entry.value}
           </li>
         ))}
@@ -182,14 +182,14 @@ const Dashboard = () => {
             <PieChartIcon size={18} className="text-green-600" />
             Distribusi Program
           </h3>
-          <div className="h-64">
+          <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={kategoriData} dataKey="value" nameKey="name" cx="40%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={2} stroke="none">
+                <Pie data={kategoriData} dataKey="value" nameKey="name" cx="50%" cy="45%" innerRadius={65} outerRadius={100} paddingAngle={2} stroke="none">
                   {kategoriData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                 </Pie>
                 <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
-                <Legend content={renderLegend} layout="vertical" verticalAlign="middle" align="right" />
+                <Legend content={renderLegend} layout="horizontal" verticalAlign="bottom" align="center" />
               </PieChart>
             </ResponsiveContainer>
           </div>
