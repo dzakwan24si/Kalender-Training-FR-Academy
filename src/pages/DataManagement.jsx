@@ -508,7 +508,15 @@ const DataManagement = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Kategori Pelatihan</label>
-                        <input required type="text" name="kategori_pelatihan" value={formData.kategori_pelatihan || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                        <select required name="sub_kategori" value={formData.sub_kategori || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
+                          <option value="">Pilih Kategori</option>
+                          <option value="Estate">Estate</option>
+                          <option value="Mill">Mill</option>
+                          <option value="Traksi">Traksi</option>
+                          <option value="Administrasi">Administrasi</option>
+                          <option value="Downstream">Downstream</option>
+                          <option value="Softskill">Softskill</option>
+                        </select>
                       </div>
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Pelaksanaan (Multi)</label>
