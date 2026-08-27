@@ -14,6 +14,12 @@ const CATEGORIES = [
   { id: 'Corporate', title: 'Training Corporate', icon: Building2 },
 ];
 
+const MONTH_NAMES_ID = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
+const DAY_NAMES_ID = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
 const TrainingCalendar = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +29,7 @@ const TrainingCalendar = () => {
   const [filterSubKategori, setFilterSubKategori] = useState('Semua Sub Kategori');
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [calendarDate, setCalendarDate] = useState(new Date());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,7 +39,6 @@ const TrainingCalendar = () => {
         setData(result.data);
       } else if (result.error) {
         console.error("Error fetching data in TrainingCalendar:", result.error);
-        // Map data to include category
         const enhancedData = result.data.map(item => {
           let category = 'Corporate';
           if (item.type === 'Reguler') {
@@ -53,10 +59,19 @@ const TrainingCalendar = () => {
     fetchData();
   }, []);
 
+  // Reset kalender ke bulan mulai program setiap kali modal dibuka / program berganti
+  useEffect(() => {
+    if (selectedProgram?.start && !isNaN(selectedProgram.start)) {
+      setCalendarDate(new Date(selectedProgram.start.getFullYear(), selectedProgram.start.getMonth(), 1));
+    } else {
+      setCalendarDate(new Date());
+    }
+  }, [selectedProgram]);
+
   const filteredData = data.filter(item => {
     const matchCategory = item.category === activeCategory;
     const matchSearch = (item.title || '').toLowerCase().includes((searchTerm || '').toLowerCase());
-    const matchLocation = filterLokasi === 'Semua Lokasi' || 
+    const matchLocation = filterLokasi === 'Semua Lokasi' ||
                          (item.location || '').toLowerCase().includes(filterLokasi.toLowerCase().replace('tc ', ''));
     const matchSubKategori = filterSubKategori === 'Semua Sub Kategori' || item.subCategory === filterSubKategori;
     return matchCategory && matchSearch && matchLocation && matchSubKategori;
@@ -67,6 +82,43 @@ const TrainingCalendar = () => {
   const totalProgram = filteredData.length;
   const totalBatch = filteredData.reduce((sum, item) => sum + item.batchCount, 0);
   const totalPeserta = filteredData.reduce((sum, item) => sum + (item.participants || item.originalData?.target_total || 0), 0);
+
+  // --- Helper kalender ---
+  const getCalendarDays = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDayOfMonth = new Date(year, month, 1);
+    const startWeekday = firstDayOfMonth.getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+    const cells = [];
+    for (let i = startWeekday - 1; i >= 0; i--) {
+      cells.push({ day: daysInPrevMonth - i, inMonth: false, date: new Date(year, month - 1, daysInPrevMonth - i) });
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push({ day: d, inMonth: true, date: new Date(year, month, d) });
+    }
+    let nextDay = 1;
+    while (cells.length < 42) {
+      cells.push({ day: nextDay, inMonth: false, date: new Date(year, month + 1, nextDay) });
+      nextDay++;
+    }
+    return cells;
+  };
+
+  const isDateInRange = (date) => {
+    const pStart = selectedProgram?.start;
+    const pEnd = selectedProgram?.end;
+    if (!pStart || isNaN(pStart)) return false;
+    const start = new Date(pStart.getFullYear(), pStart.getMonth(), pStart.getDate());
+    const end = pEnd && !isNaN(pEnd) ? new Date(pEnd.getFullYear(), pEnd.getMonth(), pEnd.getDate()) : start;
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    return d >= start && d <= end;
+  };
+
+  const handlePrevMonth = () => setCalendarDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  const handleNextMonth = () => setCalendarDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
 
   if (loading) {
     return <div className="flex items-center justify-center h-[500px]"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div></div>;
@@ -162,7 +214,7 @@ const TrainingCalendar = () => {
         {/* Toolbar */}
         <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4 bg-white">
           <div className="flex w-full sm:w-auto gap-4">
-            <select 
+            <select
               value={filterLokasi}
               onChange={(e) => setFilterLokasi(e.target.value)}
               className="border border-slate-300 rounded-lg px-4 py-2 text-slate-700 text-sm font-medium outline-none focus:border-green-500 w-full sm:w-48 bg-white appearance-none cursor-pointer"
@@ -173,7 +225,7 @@ const TrainingCalendar = () => {
               <option value="Kalbar">TC Kalbar</option>
               <option value="Kaltim">TC Kaltim</option>
             </select>
-            <select 
+            <select
               value={filterSubKategori}
               onChange={(e) => setFilterSubKategori(e.target.value)}
               className="border border-slate-300 rounded-lg px-4 py-2 text-slate-700 text-sm font-medium outline-none focus:border-green-500 w-full sm:w-48 bg-white appearance-none cursor-pointer"
@@ -247,7 +299,7 @@ const TrainingCalendar = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <button 
+                      <button
                         onClick={() => { setSelectedProgram(item); setIsModalOpen(true); }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-50 text-green-700 hover:bg-green-100 text-xs font-bold transition-colors border border-green-100"
                       >
@@ -280,7 +332,7 @@ const TrainingCalendar = () => {
       {isModalOpen && selectedProgram && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[95vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
-            
+
             {/* Header */}
             <div className="p-6 border-b border-slate-100 flex justify-between items-start bg-[#fcfcf9]">
               <div>
@@ -292,10 +344,10 @@ const TrainingCalendar = () => {
               </div>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-2"><X size={20} /></button>
             </div>
-            
+
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-white">
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Informasi Umum */}
                 <div className="bg-slate-50/50 p-5 rounded-xl border border-slate-200">
@@ -330,62 +382,65 @@ const TrainingCalendar = () => {
                 </div>
               </div>
 
-              {/* Kalender Rencana Pelaksanaan */}
+              {/* Kalender Rencana Pelaksanaan - versi kalender biasa */}
               <div>
-                <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4 text-sm mt-2">
-                  <CalendarIcon size={16} className="text-green-600" /> Kalender Rencana Pelaksanaan (Jan - Des 2026)
-                </h3>
-                <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
-                  {['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGS', 'SEPT', 'OKT', 'NOV', 'DES'].map((month, idx) => {
-                    const pStart = selectedProgram.start;
-                    const pEnd = selectedProgram.end;
-                    const targetYear = 2026;
-                    
-                    let isActive = false;
-                    let dateText = '-';
-                    
-                    if (pStart && !isNaN(pStart) && pEnd && !isNaN(pEnd)) {
-                      const startTotalMonths = pStart.getFullYear() * 12 + pStart.getMonth();
-                      const endTotalMonths = pEnd.getFullYear() * 12 + pEnd.getMonth();
-                      const currentMonthTotal = targetYear * 12 + idx;
-                      
-                      if (currentMonthTotal >= startTotalMonths && currentMonthTotal <= endTotalMonths) {
-                        isActive = true;
-                        const sDate = pStart.getDate();
-                        const eDate = pEnd.getDate();
-                        const monthsArr = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGS', 'SEPT', 'OKT', 'NOV', 'DES'];
-                        const sMonth = monthsArr[pStart.getMonth()];
-                        const eMonth = monthsArr[pEnd.getMonth()];
-                        
-                        if (startTotalMonths === endTotalMonths) {
-                          if (sDate === eDate) dateText = `${sDate} ${month}`;
-                          else dateText = `${sDate}-${eDate} ${month}`;
-                        } else {
-                          if (currentMonthTotal === startTotalMonths || currentMonthTotal === endTotalMonths) {
-                            dateText = `${sDate} ${sMonth} - ${eDate} ${eMonth}`;
-                          } else {
-                            dateText = 'Berlangsung';
-                          }
-                        }
-                      }
-                    } else if (pStart && !isNaN(pStart)) {
-                      if (pStart.getFullYear() === targetYear && pStart.getMonth() === idx) {
-                        isActive = true;
-                        dateText = `${pStart.getDate()} ${month}`;
-                      }
-                    }
-                    
-                    return (
-                      <div key={month} className={`border rounded-xl p-4 text-center flex flex-col items-center justify-center min-h-[90px] shadow-sm transition-all ${isActive ? 'border-green-300 bg-green-50/50 scale-[1.02]' : 'border-slate-100 bg-white'}`}>
-                        <span className={`text-xs font-bold tracking-wider mb-2 ${isActive ? 'text-green-800' : 'text-slate-400'}`}>{month}</span>
-                        {isActive ? (
-                          <span className="text-sm font-extrabold text-green-700">{dateText}</span>
-                        ) : (
-                          <span className="text-slate-300 font-bold">-</span>
-                        )}
+                <div className="flex items-center justify-between mb-4 mt-2">
+                  <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm">
+                    <CalendarIcon size={16} className="text-green-600" /> Kalender Rencana Pelaksanaan
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handlePrevMonth}
+                      className="w-7 h-7 flex items-center justify-center border border-slate-200 rounded-md bg-white hover:bg-slate-50 text-slate-600"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    <span className="text-sm font-bold text-slate-700 w-32 text-center">
+                      {MONTH_NAMES_ID[calendarDate.getMonth()]} {calendarDate.getFullYear()}
+                    </span>
+                    <button
+                      onClick={handleNextMonth}
+                      className="w-7 h-7 flex items-center justify-center border border-slate-200 rounded-md bg-white hover:bg-slate-50 text-slate-600"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-200">
+                    {DAY_NAMES_ID.map(day => (
+                      <div key={day} className="py-2 text-center text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        {day}
                       </div>
-                    )
-                  })}
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7">
+                    {getCalendarDays(calendarDate).map((cell, idx) => {
+                      const active = cell.inMonth && isDateInRange(cell.date);
+                      return (
+                        <div
+                          key={idx}
+                          className={`min-h-[64px] p-2 border-b border-r border-slate-100 flex flex-col items-center justify-start ${(idx + 1) % 7 === 0 ? 'border-r-0' : ''} ${!cell.inMonth ? 'bg-slate-50/40' : 'bg-white'}`}
+                        >
+                          <span
+                            className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold ${
+                              active
+                                ? 'bg-green-600 text-white'
+                                : cell.inMonth ? 'text-slate-700' : 'text-slate-300'
+                            }`}
+                          >
+                            {cell.day}
+                          </span>
+                          {active && (
+                            <span className="mt-1 text-[9px] font-semibold text-green-700 text-center leading-tight">
+                              Training
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
