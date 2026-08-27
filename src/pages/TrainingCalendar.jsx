@@ -30,6 +30,13 @@ const TrainingCalendar = () => {
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategory, searchTerm, filterLokasi, filterSubKategori, itemsPerPage]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,6 +90,11 @@ const TrainingCalendar = () => {
   const totalBatch = filteredData.reduce((sum, item) => sum + item.batchCount, 0);
   const totalPeserta = filteredData.reduce((sum, item) => sum + (item.participants || item.originalData?.target_total || 0), 0);
 
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const paginatedData = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+
   // --- Helper kalender ---
   const getCalendarDays = (date) => {
     const year = date.getFullYear();
@@ -108,13 +120,15 @@ const TrainingCalendar = () => {
   };
 
   const isDateInRange = (date) => {
-    const pStart = selectedProgram?.start;
-    const pEnd = selectedProgram?.end;
-    if (!pStart || isNaN(pStart)) return false;
-    const start = new Date(pStart.getFullYear(), pStart.getMonth(), pStart.getDate());
-    const end = pEnd && !isNaN(pEnd) ? new Date(pEnd.getFullYear(), pEnd.getMonth(), pEnd.getDate()) : start;
-    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    return d >= start && d <= end;
+    const dates = selectedProgram?.tanggal_pelaksanaan;
+    if (!dates || !Array.isArray(dates) || dates.length === 0) return false;
+    
+    const targetTime = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    
+    return dates.some(d => {
+      const pDate = new Date(d);
+      return new Date(pDate.getFullYear(), pDate.getMonth(), pDate.getDate()).getTime() === targetTime;
+    });
   };
 
   const handlePrevMonth = () => setCalendarDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -264,12 +278,12 @@ const TrainingCalendar = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredData.length === 0 ? (
+              {paginatedData.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="px-6 py-12 text-center text-slate-500 text-sm">Tidak ada program yang sesuai dengan filter.</td>
                 </tr>
               ) : (
-                filteredData.map((item, idx) => (
+                paginatedData.map((item, idx) => (
                   <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <p className="font-bold text-slate-800 text-sm">{item.title}</p>
@@ -314,13 +328,64 @@ const TrainingCalendar = () => {
         </div>
 
         {/* Pagination */}
-        <div className="p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 font-medium bg-white gap-4">
-          <span className="uppercase tracking-wider">Menampilkan {filteredData.length} dari {filteredData.length} Program Training</span>
-          <div className="flex gap-2">
-            <button className="w-8 h-8 flex items-center justify-center border border-slate-300 rounded-md bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-600">
+        <div className="p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-sm text-slate-500 bg-white gap-4">
+          <div className="flex items-center gap-3">
+            <span>Showing {filteredData.length === 0 ? 0 : indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length} records</span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              className="border border-slate-300 rounded px-2 py-1 text-slate-700 text-sm font-medium outline-none focus:border-blue-500 bg-slate-50 cursor-pointer"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+          
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="w-8 h-8 flex items-center justify-center rounded text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors">
               <ChevronLeft size={16} />
             </button>
-            <button className="w-8 h-8 flex items-center justify-center border border-slate-300 rounded-md bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-600">
+            
+            <div className="flex items-center gap-1 mx-1">
+              {Array.from({ length: totalPages }).map((_, i) => {
+                if (totalPages > 7) {
+                  if (i === 0 || i === totalPages - 1 || (i >= currentPage - 2 && i <= currentPage)) {
+                    return (
+                      <button 
+                        key={i} 
+                        onClick={() => setCurrentPage(i + 1)}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${currentPage === i + 1 ? 'bg-[#0095ff] text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                      >
+                        {i + 1}
+                      </button>
+                    );
+                  }
+                  if (i === 1 && currentPage > 3) return <span key={i} className="px-1 text-slate-400">...</span>;
+                  if (i === totalPages - 2 && currentPage < totalPages - 2) return <span key={i} className="px-1 text-slate-400">...</span>;
+                  return null;
+                }
+                
+                return (
+                  <button 
+                    key={i} 
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${currentPage === i + 1 ? 'bg-[#0095ff] text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                  >
+                    {i + 1}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button 
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className="w-8 h-8 flex items-center justify-center rounded text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors">
               <ChevronRight size={16} />
             </button>
           </div>

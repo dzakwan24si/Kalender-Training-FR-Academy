@@ -1,10 +1,41 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, X } from 'lucide-react';
+import DatePickerModule from "react-multi-date-picker";
+import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { 
   getAllPelatihan, addPelatihanNonReguler, addPelatihanReguler,
   updatePelatihanNonReguler, deletePelatihanNonReguler,
   updatePelatihanReguler, deletePelatihanReguler 
 } from '../services/supabase/client';
+
+const DatePicker = DatePickerModule.default || DatePickerModule;
+
+const groupDatesIntoRanges = (dates) => {
+  if (!dates || dates.length === 0) return [];
+  const sortedDates = dates.map(d => new Date(d)).sort((a, b) => a - b);
+  const ranges = [];
+  let currentRange = [sortedDates[0]];
+
+  for (let i = 1; i < sortedDates.length; i++) {
+    const prevDate = sortedDates[i - 1];
+    const currDate = sortedDates[i];
+    
+    const diffTime = Math.abs(currDate - prevDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    
+    if (diffDays === 1) {
+      if (currentRange.length === 1) {
+        currentRange.push(currDate);
+      } else {
+        currentRange[1] = currDate;
+      }
+    } else {
+      ranges.push(currentRange.map(d => d.toISOString().split('T')[0]));
+      currentRange = [currDate];
+    }
+  }
+  ranges.push(currentRange.map(d => d.toISOString().split('T')[0]));
+  return ranges;
+};
 
 const DataManagement = () => {
   const [data, setData] = useState([]);
@@ -13,15 +44,15 @@ const DataManagement = () => {
   const [formType, setFormType] = useState('non_reguler'); // 'non_reguler' or 'reguler'
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [filterType, setFilterType] = useState('Semua');
-  const [filterRegion, setFilterRegion] = useState('Semua Region');
-  const [filterSubKategori, setFilterSubKategori] = useState('Semua Sub Kategori');
-  const ITEMS_PER_PAGE = 25;
-
-  // Form State
   const [formData, setFormData] = useState({});
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState(null);
+  
+  // Filters
+  const [filterType, setFilterType] = useState('Semua');
+  const [filterRegion, setFilterRegion] = useState('Semua Region');
+  const [filterSubKategori, setFilterSubKategori] = useState('Semua Sub Kategori');
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   const fetchData = async () => {
     setLoading(true);
@@ -43,6 +74,45 @@ const DataManagement = () => {
     loadData();
   }, []);
 
+  const handleDateChange = (dateObjects) => {
+    if (!dateObjects || dateObjects.length === 0) {
+      setFormData(prev => ({ ...prev, tanggal_pelaksanaan: [] }));
+      return;
+    }
+    
+    let allDates = [];
+    dateObjects.forEach(item => {
+      if (Array.isArray(item)) {
+        if (item.length === 1) {
+          allDates.push(item[0].format("YYYY-MM-DD"));
+        } else if (item.length === 2) {
+          const start = new Date(item[0].format("YYYY-MM-DD"));
+          const end = new Date(item[1].format("YYYY-MM-DD"));
+          let current = new Date(start);
+          while (current <= end) {
+            allDates.push(current.toISOString().split('T')[0]);
+            current.setDate(current.getDate() + 1);
+          }
+        }
+      } else {
+        allDates.push(item.format ? item.format("YYYY-MM-DD") : item);
+      }
+    });
+
+    // Remove duplicates and sort
+    const dates = [...new Set(allDates)].sort();
+    
+    const updates = { tanggal_pelaksanaan: dates };
+    if (formType === 'reguler') {
+      updates.Mulai_program = dates[0];
+      updates.Selesai_program = dates[dates.length - 1];
+    } else {
+      updates.start_date = dates[0];
+      updates.end_date = dates[dates.length - 1];
+    }
+    setFormData(prev => ({ ...prev, ...updates }));
+  };
+
   const handleInputChange = (e) => {
     const { name, value, type } = e.target;
     let parsedValue = type === 'number' ? parseInt(value) || 0 : value;
@@ -51,13 +121,11 @@ const DataManagement = () => {
 
     // Auto-calculation logic based on PRD requirement
     if (formType === 'reguler') {
-      if (['Total_orang', 'Promosi_mandor', 'jumlah_bulan_traning', 'jumlah_hari'].includes(name)) {
+      if (['Total_orang', 'Promosi_mandor'].includes(name)) {
         const total = updatedData.Total_orang || 0;
         const promosi = updatedData.Promosi_mandor || 0;
         const freshGraduate = Math.max(0, total - promosi);
         updatedData.Fresh_Graduate = freshGraduate;
-        updatedData.Total_training_days = (updatedData.jumlah_hari || 0) * total;
-        updatedData.Uang_saku = freshGraduate * (updatedData.jumlah_bulan_traning || 0) * 2500000;
       }
     } else {
       if (['peserta_non_staf', 'peserta_ast', 'peserta_askep', 'peserta_mgr', 'peserta_gm', 'peserta_head'].includes(name)) {
@@ -74,13 +142,20 @@ const DataManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    let result;
     if (formType === 'reguler') {
-      if (isEditMode) await updatePelatihanReguler(editId, formData);
-      else await addPelatihanReguler(formData);
+      if (isEditMode) result = await updatePelatihanReguler(editId, formData);
+      else result = await addPelatihanReguler(formData);
     } else {
-      if (isEditMode) await updatePelatihanNonReguler(editId, formData);
-      else await addPelatihanNonReguler(formData);
+      if (isEditMode) result = await updatePelatihanNonReguler(editId, formData);
+      else result = await addPelatihanNonReguler(formData);
     }
+
+    if (result && result.error) {
+      alert("Error saving data: " + result.error.message);
+      return;
+    }
+
     setIsModalOpen(false);
     setFormData({});
     setIsEditMode(false);
@@ -99,6 +174,12 @@ const DataManagement = () => {
     } else {
       if (editData.Mulai_program) editData.Mulai_program = editData.Mulai_program.split('T')[0];
       if (editData.Selesai_program) editData.Selesai_program = editData.Selesai_program.split('T')[0];
+    }
+    
+    if (!editData.tanggal_pelaksanaan || editData.tanggal_pelaksanaan.length === 0) {
+      const s = isReguler ? editData.Mulai_program : editData.start_date;
+      const e = isReguler ? editData.Selesai_program : editData.end_date;
+      editData.tanggal_pelaksanaan = [s, e].filter(Boolean);
     }
 
     setFormData(editData);
@@ -126,14 +207,14 @@ const DataManagement = () => {
     const matchesRegion = filterRegion === 'Semua Region' || item.region === filterRegion;
     const matchesSub = filterSubKategori === 'Semua Sub Kategori' || item.subCategory === filterSubKategori;
     return matchesSearch && matchesType && matchesRegion && matchesSub;
-  }).sort((a, b) => a.title.localeCompare(b.title));
+  }).sort((a, b) => b.id.localeCompare(a.id)); // Default sort by latest id
 
   const uniqueRegions = [...new Set(data.map(item => item.region).filter(Boolean))];
   const uniqueSubKategories = [...new Set(data.filter(item => filterType === 'Semua' || item.type === filterType).map(item => item.subCategory).filter(sub => sub && sub !== '-'))];
 
-  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedData = filteredData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -263,28 +344,42 @@ const DataManagement = () => {
           </table>
         </div>
         
-        {/* Pagination Placeholder */}
-        <div className="p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-sm text-slate-500 bg-slate-50 gap-4">
-          <span>Menampilkan {filteredData.length === 0 ? 0 : startIndex + 1} hingga {Math.min(startIndex + ITEMS_PER_PAGE, filteredData.length)} dari {filteredData.length} data</span>
-          <div className="flex gap-1">
+        {/* Pagination */}
+        <div className="p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-sm text-slate-500 bg-white gap-4">
+          <div className="flex items-center gap-3">
+            <span>Showing {filteredData.length === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredData.length)} of {filteredData.length} records</span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="border border-slate-300 rounded px-2 py-1 text-slate-700 text-sm font-medium outline-none focus:border-blue-500 bg-slate-50 cursor-pointer"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+          
+          <div className="flex items-center gap-1">
             <button 
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1 || loading}
-              className="px-3 py-1 border border-slate-300 rounded bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-700 font-medium transition-colors"
-            >
-              Sebelumnya
+              className="w-8 h-8 flex items-center justify-center rounded text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors">
+              <ChevronLeft size={16} />
             </button>
             
-            <div className="flex items-center gap-1 mx-2">
+            <div className="flex items-center gap-1 mx-1">
               {Array.from({ length: totalPages }).map((_, i) => {
-                // Show pages around current page to avoid crowding
                 if (totalPages > 7) {
                   if (i === 0 || i === totalPages - 1 || (i >= currentPage - 2 && i <= currentPage)) {
                     return (
                       <button 
                         key={i} 
                         onClick={() => setCurrentPage(i + 1)}
-                        className={`w-8 h-8 flex items-center justify-center border rounded font-bold transition-colors ${currentPage === i + 1 ? 'border-green-600 bg-green-600 text-white' : 'border-slate-300 bg-white hover:bg-slate-50 text-slate-700'}`}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${currentPage === i + 1 ? 'bg-[#0095ff] text-white' : 'text-slate-600 hover:bg-slate-100'}`}
                       >
                         {i + 1}
                       </button>
@@ -299,7 +394,7 @@ const DataManagement = () => {
                   <button 
                     key={i} 
                     onClick={() => setCurrentPage(i + 1)}
-                    className={`w-8 h-8 flex items-center justify-center border rounded font-bold transition-colors ${currentPage === i + 1 ? 'border-green-600 bg-green-600 text-white' : 'border-slate-300 bg-white hover:bg-slate-50 text-slate-700'}`}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${currentPage === i + 1 ? 'bg-[#0095ff] text-white' : 'text-slate-600 hover:bg-slate-100'}`}
                   >
                     {i + 1}
                   </button>
@@ -310,9 +405,8 @@ const DataManagement = () => {
             <button 
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0 || loading}
-              className="px-3 py-1 border border-slate-300 rounded bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-700 font-medium transition-colors"
-            >
-              Selanjutnya
+              className="w-8 h-8 flex items-center justify-center rounded text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors">
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>
@@ -391,13 +485,18 @@ const DataManagement = () => {
                         <label className="block text-sm font-medium text-slate-700 mb-1">Kategori Pelatihan</label>
                         <input required type="text" name="kategori_pelatihan" value={formData.kategori_pelatihan || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Mulai</label>
-                        <input required type="date" name="start_date" value={formData.start_date || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Selesai</label>
-                        <input required type="date" name="end_date" value={formData.end_date || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Pelaksanaan (Multi)</label>
+                        <DatePicker 
+                          multiple 
+                          range
+                          value={groupDatesIntoRanges(formData.tanggal_pelaksanaan)} 
+                          onChange={handleDateChange}
+                          format="YYYY-MM-DD"
+                          placeholder="Pilih rentang/beberapa tanggal..."
+                          inputClass="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                          containerClassName="w-full"
+                        />
                       </div>
                     </div>
                     
@@ -450,13 +549,18 @@ const DataManagement = () => {
                         <label className="block text-sm font-medium text-slate-700 mb-1">Lokasi Training</label>
                         <input type="text" name="Lokasi_training" value={formData.Lokasi_training || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Mulai Program</label>
-                        <input required type="date" name="Mulai_program" value={formData.Mulai_program || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Selesai Program</label>
-                        <input required type="date" name="Selesai_program" value={formData.Selesai_program || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Pelaksanaan (Multi)</label>
+                        <DatePicker 
+                          multiple 
+                          range
+                          value={groupDatesIntoRanges(formData.tanggal_pelaksanaan)} 
+                          onChange={handleDateChange}
+                          format="YYYY-MM-DD"
+                          placeholder="Pilih rentang/beberapa tanggal..."
+                          inputClass="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                          containerClassName="w-full"
+                        />
                       </div>
                     </div>
                     
@@ -476,12 +580,12 @@ const DataManagement = () => {
                           <input type="number" readOnly value={formData.Fresh_Graduate || ''} className="w-full p-2 border border-blue-200 bg-blue-100 text-blue-800 rounded-lg font-bold" />
                         </div>
                         <div>
-                          <label className="block text-xs text-slate-600 mb-1">Total Training Days (Auto)</label>
-                          <input type="number" readOnly value={formData.Total_training_days || ''} className="w-full p-2 border border-slate-200 bg-slate-50 text-slate-600 rounded-lg font-bold" />
+                          <label className="block text-xs text-slate-600 mb-1">Total Training Days</label>
+                          <input type="number" name="Total_training_days" value={formData.Total_training_days || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                         </div>
                         <div className="col-span-2">
-                          <label className="block text-xs text-slate-600 mb-1">Uang Saku (Auto)</label>
-                          <input type="number" readOnly value={formData.Uang_saku || ''} className="w-full p-2 border border-slate-200 bg-slate-50 text-slate-600 rounded-lg font-bold" />
+                          <label className="block text-xs text-slate-600 mb-1">Uang Saku</label>
+                          <input type="number" name="Uang_saku" value={formData.Uang_saku || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                         </div>
                       </div>
                     </div>

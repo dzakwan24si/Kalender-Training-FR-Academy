@@ -56,6 +56,7 @@ export const getAllPelatihan = async () => {
     title: item.jenis_pelatihan,
     start: item.start_date ? new Date(item.start_date) : null,
     end: item.end_date ? new Date(item.end_date) : null,
+    tanggal_pelaksanaan: Array.isArray(item.tanggal_pelaksanaan) ? item.tanggal_pelaksanaan.map(d => new Date(d)) : (item.start_date && item.end_date ? [new Date(item.start_date), new Date(item.end_date)] : []),
     type: 'Non-Reguler',
     location: item.lokasi_training,
     region: item.region || normalizeRegion(item.lokasi_training),
@@ -72,6 +73,7 @@ export const getAllPelatihan = async () => {
     title: item.Nama_Program_reguler,
     start: item.Mulai_program ? new Date(item.Mulai_program) : null,
     end: item.Selesai_program ? new Date(item.Selesai_program) : null,
+    tanggal_pelaksanaan: Array.isArray(item.tanggal_pelaksanaan) ? item.tanggal_pelaksanaan.map(d => new Date(d)) : (item.Mulai_program && item.Selesai_program ? [new Date(item.Mulai_program), new Date(item.Selesai_program)] : []),
     type: 'Reguler',
     location: item.Lokasi_training,
     region: normalizeRegion(item.Lokasi_training),
@@ -106,7 +108,13 @@ export const addPelatihanReguler = async (data) => {
 };
 
 export const updatePelatihanNonReguler = async (id, data) => {
-  return supabase.from('Program_non_reguler').update(data).eq('id_nonreguler', id).select();
+  const dbData = { ...data };
+  if (dbData.tipe_training) {
+    dbData.type_training = dbData.tipe_training;
+    delete dbData.tipe_training;
+  }
+  delete dbData.id_nonreguler;
+  return supabase.from('Program_non_reguler').update(dbData).eq('id_nonreguler', id).select();
 };
 
 export const deletePelatihanNonReguler = async (id) => {
@@ -114,7 +122,13 @@ export const deletePelatihanNonReguler = async (id) => {
 };
 
 export const updatePelatihanReguler = async (id, data) => {
-  return supabase.from('Program_reguler').update(data).eq('Program_reguler_id', id).select();
+  const dbData = { ...data };
+  if (dbData.jumlah_bulan_traning !== undefined) {
+    dbData.jumlah_bulan_training = dbData.jumlah_bulan_traning;
+    delete dbData.jumlah_bulan_traning;
+  }
+  delete dbData.Program_reguler_id;
+  return supabase.from('Program_reguler').update(dbData).eq('Program_reguler_id', id).select();
 };
 
 export const deletePelatihanReguler = async (id) => {
