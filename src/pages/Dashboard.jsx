@@ -233,7 +233,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Chart 4: Horizontal Bar */}
+        {/* Chart 4: Horizontal Bar - hanya tampil untuk Non-Reguler atau Semua */}
+        {filterKategori !== 'Reguler - Staf' && filterKategori !== 'Reguler - Mandor' && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <h3 className="font-extrabold text-slate-800 flex items-center gap-2 mb-6 border-b border-slate-100 pb-3 text-sm">
             <LayoutIcon size={18} className="text-green-600" /> Distribusi Program (Sub-Sektor)
@@ -254,6 +255,7 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </div>
         </div>
+        )}
 
       </div>
     </div>
