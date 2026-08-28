@@ -7,7 +7,9 @@ import {
   Bell,
   Search,
   Menu,
-  X
+  X,
+  User,
+  CalendarDays
 } from 'lucide-react';
 
 const AdminLayout = () => {
@@ -16,6 +18,7 @@ const AdminLayout = () => {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'Schedule', href: '/schedule', icon: CalendarDays },
     { name: 'Kalender Training', href: '/calendar', icon: Calendar },
     { name: 'Manajemen Data', href: '/data', icon: Database },
   ];
@@ -23,6 +26,7 @@ const AdminLayout = () => {
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/': return 'Dashboard Analitik';
+      case '/schedule': return 'Schedule Bulanan';
       case '/calendar': return 'Kalender Training';
       case '/data': return 'Manajemen Data Pelatihan';
       default: return 'FR Academy';
