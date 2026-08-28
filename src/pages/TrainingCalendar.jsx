@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { getAllPelatihan } from '../services/supabase/client';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   GraduationCap, Users, MapPin, Building2, BookOpen, Layers,
-  Search, Calendar as CalendarIcon, ClipboardList, ChevronLeft, ChevronRight, X
+  Search, Calendar as CalendarIcon, ClipboardList, Download, ChevronLeft, ChevronRight, X
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -118,7 +120,12 @@ const TrainingCalendar = () => {
 
   const uniqueSubKategori = [...new Set(data.filter(item => item.category === activeCategory).map(item => item.subCategory).filter(sub => sub && sub !== '-'))];
 
-  const detailData = data.filter(item => item.category === activeCategory).sort((a, b) => {
+  const detailData = data.filter(item => {
+    const matchesCategory = item.category === activeCategory;
+    const matchesLocation = filterLokasi === 'Semua Lokasi' ||
+      (item.location || '').toLowerCase().includes(filterLokasi.toLowerCase().replace('tc ', ''));
+    return matchesCategory && matchesLocation;
+  }).sort((a, b) => {
     if (a.type !== 'Reguler' || b.type !== 'Reguler') return (a.title || '').localeCompare(b.title || '');
 
     const order = activeCategory === 'Reguler - Mandor'
@@ -154,6 +161,50 @@ const TrainingCalendar = () => {
     });
 
     return counts;
+  };
+
+  const exportDetailToPdf = () => {
+    const document = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
+    const categoryTitle = CATEGORIES.find(category => category.id === activeCategory)?.title || activeCategory;
+    const headers = [
+      'Nama Program', 'Jenis Program', 'Region', 'Target Batch', 'Target Peserta', 'Lokasi',
+      ...MONTH_NAMES_ID.map(month => month.slice(0, 3)),
+      'Jlh Hari', 'Total Training Days', 'Promosi Mandor', 'Fresh Graduated', 'Uang Saku'
+    ];
+    const rows = detailData.map(item => {
+      const monthlyCounts = getMonthlyDayCounts(item.tanggal_pelaksanaan);
+      const jumlahHari = monthlyCounts.reduce((total, count) => total + count, 0);
+      const originalData = item.originalData || {};
+      return [
+        item.title || '-', item.type || '-', item.region || 'Nasional', originalData.total_batch ?? 1,
+        item.participants || 0, item.location || '-', ...monthlyCounts, jumlahHari,
+        originalData.Total_training_days || 0, originalData.Promosi_mandor || 0,
+        originalData.Fresh_Graduate || 0, originalData.Uang_saku || 0
+      ];
+    });
+
+    document.setFontSize(16);
+    document.text(categoryTitle, 14, 14);
+    document.setFontSize(9);
+    document.text(`Detail seluruh program - Filter: ${filterLokasi}`, 14, 20);
+    autoTable(document, {
+      head: [headers],
+      body: rows,
+      startY: 25,
+      theme: 'grid',
+      styles: { fontSize: 7, cellPadding: 1.5, halign: 'center', valign: 'middle' },
+      headStyles: { fillColor: [34, 197, 94], textColor: [15, 23, 42], fontStyle: 'bold' },
+      columnStyles: { 0: { halign: 'left', cellWidth: 40 }, 5: { cellWidth: 28 } },
+      didParseCell: dataCell => {
+        if (dataCell.section === 'body' && dataCell.column.index >= 6 && dataCell.column.index <= 17 && Number(dataCell.cell.raw) > 0) {
+          dataCell.cell.styles.fillColor = [220, 252, 231];
+          dataCell.cell.styles.textColor = [21, 128, 61];
+        }
+      }
+    });
+
+    const filename = `${categoryTitle.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}-detail.pdf`;
+    document.save(filename);
   };
 
   const totalProgram = filteredData.length;
@@ -682,7 +733,11 @@ const TrainingCalendar = () => {
               </table>
             </div>
 
-            <div className="p-5 border-t border-slate-100 bg-white flex justify-end">
+            <div className="p-5 border-t border-slate-100 bg-white flex justify-end gap-3">
+              <button onClick={exportDetailToPdf} className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-colors shadow-sm">
+                <Download size={16} />
+                Export PDF
+              </button>
               <button onClick={() => setIsDetailModalOpen(false)} className="bg-[#4a7238] hover:bg-[#3d632c] text-white px-6 py-2.5 rounded-lg font-bold text-sm transition-colors shadow-sm">
                 Tutup Detail
               </button>

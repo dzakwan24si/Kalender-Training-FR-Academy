@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import DatePickerModule from "react-multi-date-picker";
-import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import XLSX from 'xlsx-js-style';
+import { Plus, Search, Edit2, Trash2, X, FileSpreadsheet, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { 
   getAllPelatihan, addPelatihanNonReguler, addPelatihanReguler,
   updatePelatihanNonReguler, deletePelatihanNonReguler,
@@ -249,6 +250,87 @@ const DataManagement = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage);
 
+  const exportAllToExcel = () => {
+    const workbook = XLSX.utils.book_new();
+    const prepareRows = records => records.map(item => Object.fromEntries(
+      Object.entries(item.originalData || {}).map(([key, value]) => [
+        key,
+        Array.isArray(value)
+          ? value.map(entry => {
+            const date = new Date(entry);
+            return Number.isNaN(date.getTime()) ? String(entry) : date.toISOString().split('T')[0];
+          }).join(', ')
+          : value
+      ])
+    ));
+    const createSheet = rows => {
+      const headers = [...new Set(rows.flatMap(row => Object.keys(row)))];
+      const sheet = XLSX.utils.json_to_sheet(rows, { header: headers });
+      const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1:A1');
+      const border = {
+        top: { style: 'thin', color: { rgb: 'B7C9B2' } },
+        bottom: { style: 'thin', color: { rgb: 'B7C9B2' } },
+        left: { style: 'thin', color: { rgb: 'B7C9B2' } },
+        right: { style: 'thin', color: { rgb: 'B7C9B2' } }
+      };
+
+      for (let rowIndex = range.s.r; rowIndex <= range.e.r; rowIndex += 1) {
+        for (let columnIndex = range.s.c; columnIndex <= range.e.c; columnIndex += 1) {
+          const cellAddress = XLSX.utils.encode_cell({ r: rowIndex, c: columnIndex });
+          if (!sheet[cellAddress]) sheet[cellAddress] = { t: 's', v: '' };
+          sheet[cellAddress].s = {
+            border,
+            alignment: { vertical: 'center', wrapText: true, horizontal: rowIndex === 0 ? 'center' : 'left' },
+            ...(rowIndex === 0 ? {
+              fill: { fgColor: { rgb: '92D050' } },
+              font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 }
+            } : {})
+          };
+        }
+      }
+
+      sheet['!cols'] = headers.map(header => ({
+        wch: Math.min(Math.max(header.length + 3, 14), 28)
+      }));
+      sheet['!rows'] = [{ hpt: 24 }];
+      return sheet;
+    };
+
+    const regulerRows = prepareRows(data.filter(item => item.type === 'Reguler'));
+    const nonRegulerRows = prepareRows(data.filter(item => item.type === 'Non-Reguler'));
+
+    XLSX.utils.book_append_sheet(workbook, createSheet(regulerRows), 'Program Reguler');
+    XLSX.utils.book_append_sheet(workbook, createSheet(nonRegulerRows), 'Program Non-Reguler');
+    XLSX.writeFile(workbook, 'semua-data-program-training.xlsx');
+  };
+
+  const exportAllToCsv = () => {
+    const records = data.map(item => ({
+      Jenis: item.type || '-',
+      ...(item.originalData || {}),
+    }));
+    const headers = [...new Set(records.flatMap(record => Object.keys(record)))];
+    const serializeValue = value => {
+      if (Array.isArray(value)) {
+        return value.map(entry => {
+          const date = new Date(entry);
+          return Number.isNaN(date.getTime()) ? String(entry) : date.toISOString().split('T')[0];
+        }).join(', ');
+      }
+      return value;
+    };
+    const escapeCsvValue = value => `"${String(serializeValue(value) ?? '').replace(/"/g, '""')}"`;
+    const csv = [headers.map(escapeCsvValue), ...records.map(record => headers.map(header => escapeCsvValue(record[header])))]
+      .map(row => row.join(','))
+      .join('\r\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'semua-data-program-training.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -256,12 +338,26 @@ const DataManagement = () => {
           <h1 className="text-2xl font-bold text-slate-800">Manajemen Data</h1>
           <p className="text-slate-500">Kelola data pelatihan reguler dan non-reguler.</p>
         </div>
-        <button 
-          onClick={() => { setFormType('non_reguler'); setFormData({}); setIsEditMode(false); setEditId(null); setIsModalOpen(true); }}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2"
-        >
-          <Plus size={18} /> Tambah Data
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={exportAllToExcel}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2"
+          >
+            <FileSpreadsheet size={18} /> Export Excel
+          </button>
+          <button
+            onClick={exportAllToCsv}
+            className="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2"
+          >
+            <FileText size={18} /> Export CSV
+          </button>
+          <button
+            onClick={() => { setFormType('non_reguler'); setFormData({}); setIsEditMode(false); setEditId(null); setIsModalOpen(true); }}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2"
+          >
+            <Plus size={18} /> Tambah Data
+          </button>
+        </div>
       </div>
       
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
