@@ -419,7 +419,7 @@ const DataManagement = () => {
                 <th className="px-4 py-3 font-medium">Total Jam/Hari</th>
                 <th className="px-4 py-3 font-medium text-center">TD</th>
                 <th className="px-4 py-3 font-medium text-center">Peserta</th>
-                <th className="px-4 py-3 font-medium text-right">Aksi</th>
+                <th className="px-4 py-3 font-medium text-right">Action</th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-slate-100">
