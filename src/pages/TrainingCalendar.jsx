@@ -638,22 +638,22 @@ const TrainingCalendar = () => {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+            <div className="flex-1 overflow-y-auto px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
               <table className="w-full table-fixed text-left border-collapse border border-slate-300 text-[13px] leading-tight">
-                <thead className="sticky top-0 z-20">
-                  <tr className="bg-green-500 text-slate-900 font-bold uppercase tracking-wider border-b border-slate-400">
-                    <th className="w-[13%] px-1.5 py-3 sticky left-0 bg-green-500 z-10 break-words border-r border-slate-400">Nama Program</th>
-                    <th className="w-[6%] px-1 py-3 text-center break-words border-r border-slate-400">Jenis Program</th>
-                    <th className="w-[5%] px-1 py-3 text-center break-words border-r border-slate-400">Region</th>
-                    <th className="w-[5%] px-1 py-3 text-center break-words border-r border-slate-400">Target Batch</th>
-                    <th className="w-[6%] px-1 py-3 text-center break-words border-r border-slate-400">Target Peserta</th>
-                    <th className="w-[9%] px-1 py-3 text-center break-words border-r border-slate-400">Lokasi</th>
-                    {MONTH_NAMES_ID.map(month => <th key={month} className="w-[3%] px-0.5 py-3 text-center break-words border-r border-slate-400">{month.slice(0, 3)}</th>)}
-                    <th className="w-[5%] px-1 py-3 text-center break-words border-r border-slate-400">Jlh Hari</th>
-                    <th className="w-[7%] px-1 py-3 text-center break-words border-r border-slate-400">Total Training Days</th>
-                    <th className="w-[6%] px-1 py-3 text-center break-words border-r border-slate-400">Promosi Mandor</th>
-                    <th className="w-[7%] px-1 py-3 text-center break-words border-r border-slate-400">Fresh Graduated</th>
-                    <th className="w-[8%] px-1 py-3 text-center break-words">Uang Saku</th>
+                <thead>
+                  <tr className="text-slate-900 font-bold uppercase tracking-wider">
+                    <th className="w-[13%] px-1.5 py-3 sticky top-0 left-0 bg-green-500 z-30 break-words border-r border-b border-slate-400">Nama Program</th>
+                    <th className="w-[6%] px-1 py-3 sticky top-0 bg-green-500 z-20 text-center break-words border-r border-b border-slate-400">Jenis Program</th>
+                    <th className="w-[5%] px-1 py-3 sticky top-0 bg-green-500 z-20 text-center break-words border-r border-b border-slate-400">Region</th>
+                    <th className="w-[5%] px-1 py-3 sticky top-0 bg-green-500 z-20 text-center break-words border-r border-b border-slate-400">Target Batch</th>
+                    <th className="w-[6%] px-1 py-3 sticky top-0 bg-green-500 z-20 text-center break-words border-r border-b border-slate-400">Target Peserta</th>
+                    <th className="w-[9%] px-1 py-3 sticky top-0 bg-green-500 z-20 text-center break-words border-r border-b border-slate-400">Lokasi</th>
+                    {MONTH_NAMES_ID.map(month => <th key={month} className="w-[3%] px-0.5 py-3 sticky top-0 bg-green-500 z-20 text-center break-words border-r border-b border-slate-400">{month.slice(0, 3)}</th>)}
+                    <th className="w-[5%] px-1 py-3 sticky top-0 bg-green-500 z-20 text-center break-words border-r border-b border-slate-400">Jlh Hari</th>
+                    <th className="w-[7%] px-1 py-3 sticky top-0 bg-green-500 z-20 text-center break-words border-r border-b border-slate-400">Total Training Days</th>
+                    <th className="w-[6%] px-1 py-3 sticky top-0 bg-green-500 z-20 text-center break-words border-r border-b border-slate-400">Promosi Mandor</th>
+                    <th className="w-[7%] px-1 py-3 sticky top-0 bg-green-500 z-20 text-center break-words border-r border-b border-slate-400">Fresh Graduated</th>
+                    <th className="w-[8%] px-1 py-3 sticky top-0 bg-green-500 z-20 text-center break-words border-b border-slate-400">Uang Saku</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -663,7 +663,7 @@ const TrainingCalendar = () => {
                     const originalData = item.originalData || {};
                     return (
                       <tr key={item.id || index} className="hover:bg-slate-50 border-b border-slate-300">
-                        <td className="px-1.5 py-5 sticky left-0 bg-white font-bold text-slate-800 break-words border-r border-slate-300">{item.title}</td>
+                        <td className="px-1.5 py-5 sticky left-0 bg-white font-bold text-slate-800 break-words border-r border-slate-300 z-10">{item.title}</td>
                         <td className="px-1 py-5 text-center text-slate-600 break-words border-r border-slate-300">{item.type || '-'}</td>
                         <td className="px-1 py-5 text-center text-slate-600 break-words border-r border-slate-300">{item.region || 'Nasional'}</td>
                         <td className="px-1 py-5 text-center font-bold text-slate-800 break-words border-r border-slate-300">{originalData.total_batch ?? 1}</td>

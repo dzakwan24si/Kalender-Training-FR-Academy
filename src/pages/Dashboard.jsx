@@ -26,14 +26,19 @@ const Dashboard = () => {
       if (result.data) {
         const enhancedData = result.data.map(item => {
           let subSektor = 'SOFT SKILLS';
-          const kat = (item.originalData?.kategori_pelatihan || '').toUpperCase();
-          const jenis = (item.originalData?.jenis_pelatihan || item.title || '').toUpperCase();
-          
-          if (kat.includes('ESTATE') || jenis.includes('ESTATE')) subSektor = 'ESTATE';
-          else if (kat.includes('MILL') || jenis.includes('MILL')) subSektor = 'MILL';
-          else if (kat.includes('TRAKSI') || jenis.includes('TRAKSI')) subSektor = 'TRAKSI';
-          else if (kat.includes('DOWNSTREAM') || jenis.includes('DOWNSTREAM')) subSektor = 'DOWNSTREAM';
-          else if (kat.includes('ADMINISTRASI') || jenis.includes('FINANCE')) subSektor = 'ADMINISTRASI';
+          // Gunakan subCategory (sudah dinormalisasi dari sub_kategori di client.js)
+          // sebagai sumber utama, lalu fallback ke kategori_pelatihan / jenis_pelatihan / title
+          const subCat = (item.subCategory && item.subCategory !== '-')
+            ? item.subCategory
+            : (item.originalData?.kategori_pelatihan || item.originalData?.jenis_pelatihan || item.title || '');
+          const subKat = subCat.toUpperCase();
+
+          if (subKat.includes('ESTATE')) subSektor = 'ESTATE';
+          else if (subKat.includes('MILL')) subSektor = 'MILL';
+          else if (subKat.includes('TRAKSI')) subSektor = 'TRAKSI';
+          else if (subKat.includes('DOWNSTREAM')) subSektor = 'DOWNSTREAM';
+          else if (subKat.includes('ADMINISTRASI') || subKat.includes('FINANCE')) subSektor = 'ADMINISTRASI';
+          else subSektor = 'SOFT SKILLS';
 
           return { ...item, subSektor };
         });
@@ -72,10 +77,11 @@ const Dashboard = () => {
   // Chart: Sub-Sektor (Horizontal Bar)
   const subSektorList = ['ESTATE', 'MILL', 'TRAKSI', 'DOWNSTREAM', 'ADMINISTRASI', 'SOFT SKILLS'];
   const subSektorData = subSektorList.map(sub => {
-    const items = filteredData.filter(d => d.subSektor === sub);
+    // Hanya hitung Non-Reguler karena Reguler tidak memiliki pembagian Sub-Sektor ini
+    const items = filteredData.filter(d => d.subSektor === sub && d.type !== 'Reguler');
     return {
       name: sub,
-      value: items.reduce((sum, item) => sum + item.batchCount, 0),
+      value: items.length, // jumlah program, bukan jumlah batch
       fill: SUB_SEKTOR_COLORS[sub]
     };
   });
