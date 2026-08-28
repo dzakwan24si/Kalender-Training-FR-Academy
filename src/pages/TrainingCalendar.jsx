@@ -633,7 +633,7 @@ const TrainingCalendar = () => {
                 <h2 className="text-xl font-extrabold text-slate-800 mt-4 leading-tight">{CATEGORIES.find(category => category.id === activeCategory)?.title}</h2>
                 <p className="text-sm text-slate-500 mt-1">Detail Seluruh Program</p>
               </div>
-              <button onClick={() => setIsDetailModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-2" aria-label="Tutup detail">
+              <button onClick={() => setIsDetailModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-2" aria-label="Tutup detail"> 
                 <X size={20} />
               </button>
             </div>
