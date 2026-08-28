@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getAllPelatihan } from '../services/supabase/client';
 import {
   GraduationCap, Users, MapPin, Building2, BookOpen, Layers,
-  Search, Calendar as CalendarIcon, ChevronLeft, ChevronRight, X
+  Search, Calendar as CalendarIcon, ClipboardList, ChevronLeft, ChevronRight, X
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -29,6 +29,7 @@ const TrainingCalendar = () => {
   const [filterSubKategori, setFilterSubKategori] = useState('Semua Sub Kategori');
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
@@ -84,12 +85,20 @@ const TrainingCalendar = () => {
     return matchCategory && matchSearch && matchLocation && matchSubKategori;
   }).sort((a, b) => {
     if (a.type === 'Reguler' && b.type === 'Reguler') {
-      const order = ['FAT', 'MAT', 'TAT', 'DMT', 'AAT', 'PMT', 'PKT'];
+      const order = activeCategory === 'Reguler - Mandor'
+        ? ['PMT', 'PKT']
+        : ['FAT', 'MAT', 'TAT', 'AAT'];
       const getPrefixIdx = (title) => {
         const prefix = (title || '').split(' ')[0].toUpperCase();
         const idx = order.indexOf(prefix);
         return idx !== -1 ? idx : 999;
       };
+      if (activeCategory === 'Reguler - Mandor') {
+        const regionOrder = { kalbar: 0, kaltim: 1 };
+        const regionA = regionOrder[(a.region || '').toLowerCase()] ?? 999;
+        const regionB = regionOrder[(b.region || '').toLowerCase()] ?? 999;
+        if (regionA !== regionB) return regionA - regionB;
+      }
       const idxA = getPrefixIdx(a.title);
       const idxB = getPrefixIdx(b.title);
       if (idxA !== idxB) return idxA - idxB;
@@ -108,6 +117,44 @@ const TrainingCalendar = () => {
   });
 
   const uniqueSubKategori = [...new Set(data.filter(item => item.category === activeCategory).map(item => item.subCategory).filter(sub => sub && sub !== '-'))];
+
+  const detailData = data.filter(item => item.category === activeCategory).sort((a, b) => {
+    if (a.type !== 'Reguler' || b.type !== 'Reguler') return (a.title || '').localeCompare(b.title || '');
+
+    const order = activeCategory === 'Reguler - Mandor'
+      ? ['PMT', 'PKT']
+      : ['FAT', 'MAT', 'TAT', 'AAT'];
+    const prefixA = order.indexOf((a.title || '').split(' ')[0].toUpperCase());
+    const prefixB = order.indexOf((b.title || '').split(' ')[0].toUpperCase());
+
+    if (activeCategory === 'Reguler - Mandor') {
+      const regionOrder = { kalbar: 0, kaltim: 1 };
+      const regionA = regionOrder[(a.region || '').toLowerCase()] ?? 999;
+      const regionB = regionOrder[(b.region || '').toLowerCase()] ?? 999;
+      if (regionA !== regionB) return regionA - regionB;
+    }
+
+    if (prefixA !== prefixB) return (prefixA === -1 ? 999 : prefixA) - (prefixB === -1 ? 999 : prefixB);
+    return (a.title || '').localeCompare(b.title || '');
+  });
+  const isRegulerCategory = activeCategory === 'Reguler - Staf' || activeCategory === 'Reguler - Mandor';
+  const getMonthlyDayCounts = (dates) => {
+    const counts = Array(12).fill(0);
+    const uniqueDates = new Set();
+
+    (Array.isArray(dates) ? dates : []).forEach(dateValue => {
+      const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+      if (Number.isNaN(date.getTime()) || date.getUTCDay() === 0) return;
+
+      const dateKey = date.toISOString().split('T')[0];
+      if (uniqueDates.has(dateKey)) return;
+
+      uniqueDates.add(dateKey);
+      counts[date.getUTCMonth()] += 1;
+    });
+
+    return counts;
+  };
 
   const totalProgram = filteredData.length;
   const totalBatch = filteredData.reduce((sum, item) => sum + item.batchCount, 0);
@@ -284,6 +331,15 @@ const TrainingCalendar = () => {
                 className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:border-green-500 outline-none transition-all"
               />
             </div>
+            {isRegulerCategory && (
+              <button
+                onClick={() => setIsDetailModalOpen(true)}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 rounded-lg text-sm font-bold transition-colors whitespace-nowrap"
+              >
+                <ClipboardList size={16} />
+                Lihat Detail
+              </button>
+            )}
           </div>
         </div>
 
@@ -564,6 +620,73 @@ const TrainingCalendar = () => {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {isDetailModalOpen && isRegulerCategory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-3">
+          <div className="bg-white rounded-2xl shadow-xl w-full h-[98vh] flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex justify-between items-start bg-[#fcfcf9]">
+              <div>
+                <span className="inline-flex px-3 py-1 rounded-full text-[11px] font-bold bg-blue-100 text-blue-700">Reguler</span>
+                <h2 className="text-xl font-extrabold text-slate-800 mt-4 leading-tight">{CATEGORIES.find(category => category.id === activeCategory)?.title}</h2>
+                <p className="text-sm text-slate-500 mt-1">Detail seluruh program</p>
+              </div>
+              <button onClick={() => setIsDetailModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-2" aria-label="Tutup detail">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+              <table className="w-full table-fixed text-left border-collapse border border-slate-300 text-[13px] leading-tight">
+                <thead className="sticky top-0 z-20">
+                  <tr className="bg-green-500 text-slate-900 font-bold uppercase tracking-wider border-b border-slate-400">
+                    <th className="w-[13%] px-1.5 py-3 sticky left-0 bg-green-500 z-10 break-words border-r border-slate-400">Nama Program</th>
+                    <th className="w-[6%] px-1 py-3 text-center break-words border-r border-slate-400">Jenis Program</th>
+                    <th className="w-[5%] px-1 py-3 text-center break-words border-r border-slate-400">Region</th>
+                    <th className="w-[5%] px-1 py-3 text-center break-words border-r border-slate-400">Target Batch</th>
+                    <th className="w-[6%] px-1 py-3 text-center break-words border-r border-slate-400">Target Peserta</th>
+                    <th className="w-[9%] px-1 py-3 text-center break-words border-r border-slate-400">Lokasi</th>
+                    {MONTH_NAMES_ID.map(month => <th key={month} className="w-[3%] px-0.5 py-3 text-center break-words border-r border-slate-400">{month.slice(0, 3)}</th>)}
+                    <th className="w-[5%] px-1 py-3 text-center break-words border-r border-slate-400">Jlh Hari</th>
+                    <th className="w-[7%] px-1 py-3 text-center break-words border-r border-slate-400">Total Training Days</th>
+                    <th className="w-[6%] px-1 py-3 text-center break-words border-r border-slate-400">Promosi Mandor</th>
+                    <th className="w-[7%] px-1 py-3 text-center break-words border-r border-slate-400">Fresh Graduated</th>
+                    <th className="w-[8%] px-1 py-3 text-center break-words">Uang Saku</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detailData.map((item, index) => {
+                    const monthlyCounts = getMonthlyDayCounts(item.tanggal_pelaksanaan);
+                    const jumlahHari = monthlyCounts.reduce((total, count) => total + count, 0);
+                    const originalData = item.originalData || {};
+                    return (
+                      <tr key={item.id || index} className="hover:bg-slate-50 border-b border-slate-300">
+                        <td className="px-1.5 py-5 sticky left-0 bg-white font-bold text-slate-800 break-words border-r border-slate-300">{item.title}</td>
+                        <td className="px-1 py-5 text-center text-slate-600 break-words border-r border-slate-300">{item.type || '-'}</td>
+                        <td className="px-1 py-5 text-center text-slate-600 break-words border-r border-slate-300">{item.region || 'Nasional'}</td>
+                        <td className="px-1 py-5 text-center font-bold text-slate-800 break-words border-r border-slate-300">{originalData.total_batch ?? 1}</td>
+                        <td className="px-1 py-5 text-center font-bold text-slate-800 break-words border-r border-slate-300">{item.participants || 0}</td>
+                        <td className="px-1 py-5 text-center text-slate-600 break-words border-r border-slate-300">{item.location || '-'}</td>
+                        {monthlyCounts.map((count, monthIndex) => <td key={monthIndex} className={`px-0.5 py-5 text-center font-bold border-r border-slate-300 ${count > 0 ? 'bg-green-100 text-green-700' : 'text-slate-800'}`}>{count}</td>)}
+                        <td className="px-1 py-5 text-center font-bold text-slate-800 break-words border-r border-slate-300">{jumlahHari}</td>
+                        <td className="px-1 py-5 text-center font-bold text-slate-800 break-words border-r border-slate-300">{originalData.Total_training_days || 0}</td>
+                        <td className="px-1 py-5 text-center font-bold text-slate-800 break-words border-r border-slate-300">{originalData.Promosi_mandor || 0}</td>
+                        <td className="px-1 py-5 text-center font-bold text-slate-800 break-words border-r border-slate-300">{originalData.Fresh_Graduate || 0}</td>
+                        <td className="px-1 py-5 text-center font-bold text-slate-800 break-words">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(originalData.Uang_saku || 0)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="p-5 border-t border-slate-100 bg-white flex justify-end">
+              <button onClick={() => setIsDetailModalOpen(false)} className="bg-[#4a7238] hover:bg-[#3d632c] text-white px-6 py-2.5 rounded-lg font-bold text-sm transition-colors shadow-sm">
+                Tutup Detail
+              </button>
+            </div>
           </div>
         </div>
       )}
