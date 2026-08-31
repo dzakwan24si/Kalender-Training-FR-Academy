@@ -54,6 +54,8 @@ const DataManagement = () => {
   const [filterRegion, setFilterRegion] = useState('Semua Region');
   const [filterSubKategori, setFilterSubKategori] = useState('Semua Sub Kategori');
   const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
   
   const fetchData = async () => {
     setLoading(true);
@@ -198,15 +200,22 @@ const DataManagement = () => {
   };
 
   const handleDelete = async (item) => {
-    const isReguler = item.type === 'Reguler';
-    if (window.confirm(`Yakin ingin menghapus data ${item.title}?`)) {
-      if (isReguler) {
-        await deletePelatihanReguler(item.originalData.Program_reguler_id);
-      } else {
-        await deletePelatihanNonReguler(item.originalData.id_nonreguler);
-      }
-      fetchData();
+    setItemToDelete(item);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    
+    const isReguler = itemToDelete.type === 'Reguler';
+    if (isReguler) {
+      await deletePelatihanReguler(itemToDelete.originalData.Program_reguler_id);
+    } else {
+      await deletePelatihanNonReguler(itemToDelete.originalData.id_nonreguler);
     }
+    setIsDeleteConfirmOpen(false);
+    setItemToDelete(null);
+    fetchData();
   };
 
   const filteredData = data.filter(item => {
@@ -787,6 +796,48 @@ const DataManagement = () => {
               </button>
               <button type="submit" form="trainingForm" className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-sm transition-colors">
                 {isEditMode ? 'Simpan Perubahan' : 'Simpan Data'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      {isDeleteConfirmOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <Trash2 size={20} className="text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900">Konfirmasi Penghapusan</h3>
+            </div>
+            
+            <p className="text-slate-600 mb-6">
+              Apakah kamu yakin ingin menghapus <span className="font-semibold text-slate-900">"{itemToDelete?.title}"</span>?
+            </p>
+            
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6">
+              <p className="text-sm text-amber-800">
+                <span className="font-semibold">Perhatian:</span> Data yang dihapus tidak dapat dikembalikan.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setIsDeleteConfirmOpen(false);
+                  setItemToDelete(null);
+                }}
+                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-100 font-medium transition-colors"
+              >
+                Tidak
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Ya, Hapus
               </button>
             </div>
           </div>
