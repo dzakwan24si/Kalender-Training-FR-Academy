@@ -144,7 +144,7 @@ const TrainingCalendar = () => {
     if (prefixA !== prefixB) return (prefixA === -1 ? 999 : prefixA) - (prefixB === -1 ? 999 : prefixB);
     return (a.title || '').localeCompare(b.title || '');
   });
-  const isRegulerCategory = activeCategory === 'Reguler - Staf' || activeCategory === 'Reguler - Mandor';
+
   const getMonthlyDayCounts = (dates) => {
     const counts = Array(12).fill(0);
     const uniqueDates = new Set();
@@ -162,6 +162,24 @@ const TrainingCalendar = () => {
 
     return counts;
   };
+
+  const detailTotals = detailData.reduce((acc, item) => {
+    const originalData = item.originalData || {};
+
+    acc.batch += Number(originalData.total_batch ?? 1);
+    acc.participants += Number(item.participants || 0);
+    acc.promosiMandor += Number(originalData.Promosi_mandor || 0);
+    acc.freshGraduate += Number(originalData.Fresh_Graduate || 0);
+
+    return acc;
+  }, {
+    batch: 0,
+    participants: 0,
+    promosiMandor: 0,
+    freshGraduate: 0
+  });
+
+  const isRegulerCategory = activeCategory === 'Reguler - Staf' || activeCategory === 'Reguler - Mandor';
 
   const exportDetailToPdf = () => {
     const document = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
@@ -182,6 +200,11 @@ const TrainingCalendar = () => {
         originalData.Fresh_Graduate || 0, originalData.Uang_saku || 0
       ];
     });
+
+    rows.push([
+      'TOTAL', '-', '-', detailTotals.batch, detailTotals.participants, '-',
+      ...Array(12).fill(''), '', '', detailTotals.promosiMandor, detailTotals.freshGraduate, 0
+    ]);
 
     document.setFontSize(16);
     document.text(categoryTitle, 14, 14);
@@ -704,7 +727,6 @@ const TrainingCalendar = () => {
                     <th className="w-[7%] px-1 py-3 sticky top-0 bg-green-500 z-20 text-center break-words border-r border-b border-slate-400">Total Training Days</th>
                     <th className="w-[6%] px-1 py-3 sticky top-0 bg-green-500 z-20 text-center break-words border-r border-b border-slate-400">Promosi Mandor</th>
                     <th className="w-[7%] px-1 py-3 sticky top-0 bg-green-500 z-20 text-center break-words border-r border-b border-slate-400">Fresh Graduated</th>
-                    <th className="w-[8%] px-1 py-3 sticky top-0 bg-green-500 z-20 text-center break-words border-b border-slate-400">Uang Saku</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -725,10 +747,24 @@ const TrainingCalendar = () => {
                         <td className="px-1 py-5 text-center font-bold text-slate-800 break-words border-r border-slate-300">{originalData.Total_training_days || 0}</td>
                         <td className="px-1 py-5 text-center font-bold text-slate-800 break-words border-r border-slate-300">{originalData.Promosi_mandor || 0}</td>
                         <td className="px-1 py-5 text-center font-bold text-slate-800 break-words border-r border-slate-300">{originalData.Fresh_Graduate || 0}</td>
-                        <td className="px-1 py-5 text-center font-bold text-slate-800 break-words">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(originalData.Uang_saku || 0)}</td>
                       </tr>
                     );
                   })}
+                  <tr className="bg-green-100 font-extrabold text-green-900 border-t-2 border-green-600">
+                    <td className="px-1.5 py-4 sticky left-0 bg-green-100 z-10 border-r border-green-300 text-center uppercase">Total</td>
+                    <td className="px-1 py-4 text-center border-r border-green-300"></td>
+                    <td className="px-1 py-4 text-center border-r border-green-300"></td>
+                    <td className="px-1 py-4 text-center border-r border-green-300">{detailTotals.batch}</td>
+                    <td className="px-1 py-4 text-center border-r border-green-300">{detailTotals.participants}</td>
+                    <td className="px-1 py-4 text-center border-r border-green-300"></td>
+                    {Array.from({ length: 12 }).map((_, index) => (
+                      <td key={`total-month-${index}`} className="px-0.5 py-4 text-center border-r border-green-300"></td>
+                    ))}
+                    <td className="px-1 py-4 text-center border-r border-green-300"></td>
+                    <td className="px-1 py-4 text-center border-r border-green-300"></td>
+                    <td className="px-1 py-4 text-center border-r border-green-300">{detailTotals.promosiMandor}</td>
+                    <td className="px-1 py-4 text-center">{detailTotals.freshGraduate}</td>
+                  </tr>
                 </tbody>
               </table>
             </div>

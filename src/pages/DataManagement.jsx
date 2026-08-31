@@ -54,7 +54,7 @@ const DataManagement = () => {
   const [filterRegion, setFilterRegion] = useState('Semua Region');
   const [filterSubKategori, setFilterSubKategori] = useState('Semua Sub Kategori');
   const [itemsPerPage, setItemsPerPage] = useState(25);
-
+  
   const fetchData = async () => {
     setLoading(true);
     const result = await getAllPelatihan();
